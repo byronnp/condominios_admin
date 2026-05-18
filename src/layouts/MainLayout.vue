@@ -2,32 +2,46 @@
   <q-layout view="lHh Lpr lFf" class="app-shell">
     <q-header class="app-header">
       <q-toolbar class="app-toolbar">
-        <q-btn
-          flat
-          dense
-          round
-          icon="menu"
-          aria-label="Abrir menu"
-          class="mobile-menu-btn"
-          @click="toggleLeftDrawer"
-        />
+        <div class="header-left">
+          <q-btn
+            flat
+            dense
+            round
+            :icon="isDrawerMini ? 'menu_open' : 'menu'"
+            aria-label="Abrir menu"
+            class="drawer-toggle"
+            @click="toggleLeftDrawer"
+          />
 
-        <div class="brand-block">
-          <div class="brand-mark">CA</div>
+          <div class="brand-block">
+            <div class="brand-mark">CA</div>
+            <div>
+              <q-toolbar-title class="brand-title">Condominios Admin</q-toolbar-title>
+              <div class="brand-subtitle">{{ roleLabel }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="header-context">
+          <q-icon :name="currentSection.icon" />
           <div>
-            <q-toolbar-title class="brand-title">Condominios Admin</q-toolbar-title>
-            <div class="brand-subtitle">{{ roleLabel }}</div>
+            <span>{{ currentSection.label }}</span>
+            <small>{{ userScope }}</small>
           </div>
         </div>
 
         <q-space />
 
+        <q-btn flat round dense icon="notifications" aria-label="Notificaciones" class="header-icon-btn">
+          <q-badge floating rounded color="accent" label="3" />
+        </q-btn>
+
         <q-btn-dropdown flat no-caps class="user-menu">
           <template #label>
             <div class="user-menu__label">
-              <q-avatar size="34px" color="primary" text-color="white">MB</q-avatar>
-              <div class="user-menu__text">
-                <span>Maria Beltran</span>
+            <q-avatar size="34px" color="primary" text-color="white">{{ userInitials }}</q-avatar>
+            <div class="user-menu__text">
+                <span>{{ userName }}</span>
                 <small>{{ userScope }}</small>
               </div>
             </div>
@@ -39,7 +53,7 @@
               </q-item-section>
               <q-item-section>Mi perfil</q-item-section>
             </q-item>
-            <q-item clickable v-close-popup to="/login">
+            <q-item clickable v-close-popup :disable="authLoading" @click="handleLogout">
               <q-item-section avatar>
                 <q-icon name="logout" />
               </q-item-section>
@@ -50,9 +64,17 @@
       </q-toolbar>
     </q-header>
 
-    <q-drawer v-model="leftDrawerOpen" show-if-above bordered class="app-drawer" :width="284">
+    <q-drawer
+      v-model="leftDrawerOpen"
+      show-if-above
+      bordered
+      class="app-drawer"
+      :width="284"
+      :mini-width="76"
+      :mini="isDrawerMini"
+    >
       <div class="drawer-profile">
-        <q-avatar size="44px" color="primary" text-color="white">MB</q-avatar>
+        <q-avatar size="44px" color="primary" text-color="white">{{ userInitials }}</q-avatar>
         <div>
           <strong>{{ roleLabel }}</strong>
           <span>{{ userScope }}</span>
@@ -64,42 +86,59 @@
           v-for="item in menuItems"
           :key="item.label"
           clickable
+          :to="item.to"
+          :exact="item.to === '/'"
           active-class="nav-item--active"
           class="nav-item"
-          :active="item.active"
         >
           <q-item-section avatar>
             <q-icon :name="item.icon" />
           </q-item-section>
           <q-item-section>{{ item.label }}</q-item-section>
+          <q-tooltip v-if="isDrawerMini" anchor="center right" self="center left">
+            {{ item.label }}
+          </q-tooltip>
         </q-item>
       </q-list>
     </q-drawer>
 
     <q-page-container>
-      <router-view />
+      <router-view v-slot="{ Component, route }">
+        <transition name="page-transition" mode="out-in">
+          <component :is="Component" :key="route.fullPath" />
+        </transition>
+      </router-view>
     </q-page-container>
   </q-layout>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-
-type UserRole = 'super-admin' | 'condo-admin' | 'resident';
+import { useQuasar } from 'quasar';
+import { useRoute, useRouter } from 'vue-router';
+import { useAuth } from '../composables/useAuth';
+import { useAuthStore } from '../stores/auth-store';
+import type { UserRole } from '../interfaces/shared/user-role.interface';
 
 const leftDrawerOpen = ref(false);
+const drawerMini = ref(false);
+const $q = useQuasar();
+const route = useRoute();
+const router = useRouter();
+const authStore = useAuthStore();
+const { signOut, loading: authLoading } = useAuth();
 
-const currentRole = computed<UserRole>(() => {
-  if (typeof window === 'undefined') {
-    return 'super-admin';
-  }
+const isDrawerMini = computed(() => drawerMini.value && !$q.screen.lt.md);
 
-  const storedRole = window.localStorage.getItem('condominios-role');
-  if (storedRole === 'condo-admin' || storedRole === 'resident') {
-    return storedRole;
-  }
-
-  return 'super-admin';
+const currentRole = computed(() => authStore.role);
+const userName = computed(() => authStore.userName);
+const userInitials = computed(() => {
+  return userName.value
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((name) => name[0]?.toUpperCase())
+    .join('');
 });
 
 const roleLabel = computed(() => {
@@ -122,16 +161,64 @@ const userScope = computed(() => {
   return scopes[currentRole.value];
 });
 
+const currentSection = computed(() => {
+  if (route.path.startsWith('/condominios/nuevo')) {
+    return { label: 'Nuevo condominio', icon: 'add_business' };
+  }
+
+  if (route.path.includes('/condominios/') && route.path.endsWith('/editar')) {
+    return { label: 'Editar condominio', icon: 'edit' };
+  }
+
+  if (route.path.startsWith('/condominios')) {
+    return { label: 'Condominios', icon: 'apartment' };
+  }
+
+  if (route.path.startsWith('/administradores/nuevo')) {
+    return { label: 'Nuevo administrador', icon: 'person_add' };
+  }
+
+  if (route.path.includes('/administradores/') && route.path.endsWith('/editar')) {
+    return { label: 'Editar administrador', icon: 'edit' };
+  }
+
+  if (route.path.startsWith('/administradores')) {
+    return { label: 'Administradores', icon: 'manage_accounts' };
+  }
+
+  if (route.path.startsWith('/usuarios/nuevo')) {
+    return { label: 'Nuevo usuario', icon: 'person_add' };
+  }
+
+  if (route.path.includes('/usuarios/') && route.path.endsWith('/editar')) {
+    return { label: 'Editar usuario', icon: 'edit' };
+  }
+
+  if (route.path.startsWith('/usuarios')) {
+    return { label: 'Usuarios', icon: 'groups' };
+  }
+
+  if (route.path.startsWith('/reportes')) {
+    return { label: 'Reportes', icon: 'analytics' };
+  }
+
+  if (route.path.startsWith('/configuracion')) {
+    return { label: 'Configuracion', icon: 'settings' };
+  }
+
+  return { label: 'Dashboard', icon: 'dashboard' };
+});
+
 const menuItems = computed(() => {
-  const shared = [{ label: 'Inicio', icon: 'dashboard', active: true }];
-  const roleMenus: Record<UserRole, { label: string; icon: string; active?: boolean }[]> = {
+  const shared = [{ label: 'Inicio', icon: 'dashboard', to: '/' }];
+  const roleMenus: Record<UserRole, { label: string; icon: string; to?: string }[]> = {
     'super-admin': [
       ...shared,
-      { label: 'Condominios', icon: 'apartment' },
-      { label: 'Administradores', icon: 'manage_accounts' },
-      { label: 'Usuarios', icon: 'groups' },
-      { label: 'Reportes', icon: 'analytics' },
-      { label: 'Configuracion', icon: 'settings' },
+      { label: 'Condominios', icon: 'apartment', to: '/condominios' },
+      { label: 'Administradores', icon: 'manage_accounts', to: '/administradores' },
+      { label: 'Usuarios', icon: 'groups', to: '/usuarios' },
+      { label: 'Reportes', icon: 'analytics', to: '/reportes' },
+      { label: 'Configuracion', icon: 'settings', to: '/configuracion' },
     ],
     'condo-admin': [
       ...shared,
@@ -156,6 +243,16 @@ const menuItems = computed(() => {
 });
 
 function toggleLeftDrawer() {
-  leftDrawerOpen.value = !leftDrawerOpen.value;
+  if ($q.screen.lt.md) {
+    leftDrawerOpen.value = !leftDrawerOpen.value;
+    return;
+  }
+
+  drawerMini.value = !drawerMini.value;
+}
+
+async function handleLogout() {
+  await signOut().catch(() => undefined);
+  void router.push('/login');
 }
 </script>

@@ -4,7 +4,7 @@
       <div class="auth-visual__content">
         <div class="brand-mark brand-mark--large">CA</div>
         <p class="eyebrow">Administracion residencial</p>
-        <h1>Gestion clara para administradores y condominos.</h1>
+        <h1>Gestion y administracion de condominios</h1>
         <p>
           Accesos por rol, informacion relevante al entrar y flujos pensados para resolver tareas
           frecuentes con pocos pasos.
@@ -23,6 +23,8 @@
         <q-input
           v-model="email"
           outlined
+          dense
+          class="auth-input"
           label="Correo electronico"
           type="email"
           autocomplete="email"
@@ -36,6 +38,8 @@
         <q-input
           v-model="password"
           outlined
+          dense
+          class="auth-input"
           label="Contrasena"
           :type="showPassword ? 'text' : 'password'"
           autocomplete="current-password"
@@ -58,19 +62,29 @@
 
         <div class="login-card__meta">
           <q-checkbox v-model="rememberSession" label="Recordar sesion" dense />
-          <q-btn flat no-caps color="primary" label="Olvide mi contrasena" />
+          <q-btn
+            flat
+            dense
+            no-caps
+            color="primary"
+            label="Olvide mi contrasena"
+            class="auth-link-btn"
+          />
         </div>
+
+        <q-banner v-if="authError" dense rounded class="auth-error">
+          {{ authError }}
+        </q-banner>
 
         <q-btn
           type="submit"
           color="primary"
           unelevated
           no-caps
-          size="lg"
           icon-right="arrow_forward"
           label="Entrar al dashboard"
-          class="full-width"
-          :loading="isSubmitting"
+          class="auth-submit-btn full-width"
+          :loading="loading"
         />
       </q-form>
     </section>
@@ -80,37 +94,24 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-
-type UserRole = 'super-admin' | 'condo-admin' | 'resident';
+import { useAuth } from '../composables/useAuth';
 
 const router = useRouter();
-const email = ref('admin@condominios.com');
-const password = ref('123456');
+const { loading, error: authError, signIn } = useAuth();
+const email = ref('admin@condominios.test');
+const password = ref('admin123');
 const showPassword = ref(false);
 const rememberSession = ref(true);
-const isSubmitting = ref(false);
 
-function submitLogin() {
-  isSubmitting.value = true;
-
-  window.setTimeout(() => {
-    window.localStorage.setItem('condominios-role', resolveDemoRole(email.value));
-    isSubmitting.value = false;
+async function submitLogin() {
+  try {
+    await signIn({
+      email: email.value,
+      password: password.value,
+    });
     void router.push('/');
-  }, 450);
-}
-
-function resolveDemoRole(userEmail: string): UserRole {
-  const normalizedEmail = userEmail.trim().toLowerCase();
-
-  if (normalizedEmail.includes('super')) {
-    return 'super-admin';
+  } catch {
+    // The composable exposes the message for the template.
   }
-
-  if (normalizedEmail.includes('condomino') || normalizedEmail.includes('residente')) {
-    return 'resident';
-  }
-
-  return 'condo-admin';
 }
 </script>

@@ -9,7 +9,13 @@
 
       <div class="heading-actions">
         <q-btn outline color="primary" icon="filter_list" label="Filtrar" no-caps />
-        <q-btn color="primary" :icon="dashboard.primaryAction.icon" :label="dashboard.primaryAction.label" no-caps />
+        <q-btn
+          color="primary"
+          :icon="dashboard.primaryAction.icon"
+          :label="dashboard.primaryAction.label"
+          :to="dashboard.primaryAction.to"
+          no-caps
+        />
       </div>
     </section>
 
@@ -75,9 +81,8 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-
-type UserRole = 'super-admin' | 'condo-admin' | 'resident';
-type Tone = 'positive' | 'warning' | 'neutral';
+import type { DashboardView } from '../interfaces/dashboard/dashboard.interface';
+import type { UserRole } from '../interfaces/shared/user-role.interface';
 
 const currentRole = computed<UserRole>(() => {
   if (typeof window === 'undefined') {
@@ -95,17 +100,7 @@ const currentRole = computed<UserRole>(() => {
 const dashboard = computed(() => {
   const dashboards: Record<
     UserRole,
-    {
-      copy: { eyebrow: string; title: string; description: string };
-      primaryAction: { label: string; icon: string };
-      metrics: { label: string; value: string; detail: string; icon: string; tone: Tone }[];
-      mainPanel: {
-        title: string;
-        subtitle: string;
-        items: { title: string; caption: string; status: string; icon: string; color: string }[];
-      };
-      sidePanel: { title: string; subtitle: string; actions: { label: string; icon: string }[] };
-    }
+    DashboardView
   > = {
     'super-admin': {
       copy: {
@@ -113,7 +108,7 @@ const dashboard = computed(() => {
         title: 'Control central de condominios',
         description: 'Supervisa condominios, administradores, usuarios y pagos desde una vista ejecutiva.',
       },
-      primaryAction: { label: 'Nuevo condominio', icon: 'add_business' },
+      primaryAction: { label: 'Nuevo condominio', icon: 'add_business', to: '/condominios/nuevo' },
       metrics: [
         { label: 'Condominios activos', value: '18', detail: '+3 este mes', icon: 'apartment', tone: 'positive' },
         { label: 'Administradores', value: '26', detail: '4 por activar', icon: 'manage_accounts', tone: 'warning' },

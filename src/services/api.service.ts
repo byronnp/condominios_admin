@@ -40,6 +40,58 @@ export async function apiPost<TResponse, TPayload>(path: string, payload: TPaylo
   return data as TResponse;
 }
 
+export async function apiPatch<TResponse, TPayload>(path: string, payload: TPayload): Promise<TResponse> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+  };
+
+  const response = await fetch(buildUrl(path), {
+    method: 'PATCH',
+    credentials: 'include',
+    headers,
+    body: JSON.stringify(payload),
+  });
+
+  const data = (await response.json().catch(() => null)) as TResponse | { message?: string } | null;
+
+  if (!response.ok) {
+    const message =
+      data && typeof data === 'object' && 'message' in data && data.message
+        ? data.message
+        : 'No se pudo completar la solicitud';
+    throw new ApiError(message, response.status);
+  }
+
+  return data as TResponse;
+}
+
+export async function apiPut<TResponse, TPayload>(path: string, payload: TPayload): Promise<TResponse> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+  };
+
+  const response = await fetch(buildUrl(path), {
+    method: 'PUT',
+    credentials: 'include',
+    headers,
+    body: JSON.stringify(payload),
+  });
+
+  const data = (await response.json().catch(() => null)) as TResponse | { message?: string } | null;
+
+  if (!response.ok) {
+    const message =
+      data && typeof data === 'object' && 'message' in data && data.message
+        ? data.message
+        : 'No se pudo completar la solicitud';
+    throw new ApiError(message, response.status);
+  }
+
+  return data as TResponse;
+}
+
 export async function apiGet<TResponse>(path: string): Promise<TResponse> {
   const response = await fetch(buildUrl(path), {
     method: 'GET',
@@ -65,6 +117,28 @@ export async function apiGet<TResponse>(path: string): Promise<TResponse> {
 export async function apiPostWithoutPayload<TResponse>(path: string): Promise<TResponse> {
   const response = await fetch(buildUrl(path), {
     method: 'POST',
+    credentials: 'include',
+    headers: {
+      Accept: 'application/json',
+    },
+  });
+
+  const data = (await response.json().catch(() => null)) as TResponse | { message?: string } | null;
+
+  if (!response.ok) {
+    const message =
+      data && typeof data === 'object' && 'message' in data && data.message
+        ? data.message
+        : 'No se pudo completar la solicitud';
+    throw new ApiError(message, response.status);
+  }
+
+  return data as TResponse;
+}
+
+export async function apiDelete<TResponse>(path: string): Promise<TResponse> {
+  const response = await fetch(buildUrl(path), {
+    method: 'DELETE',
     credentials: 'include',
     headers: {
       Accept: 'application/json',

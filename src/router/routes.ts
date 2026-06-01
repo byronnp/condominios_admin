@@ -9,8 +9,12 @@ const routes: RouteRecordRaw[] = [
     path: '/',
     component: () => import('layouts/MainLayout.vue'),
     children: [
-      { path: '', name: 'dashboard', component: () => import('pages/IndexPage.vue') },
-      { path: 'condominios', name: 'condominiums', component: () => import('pages/CondominiumsPage.vue') },
+      { path: '', name: 'dashboard', component: () => import('pages/DashboardPage.vue') },
+      {
+        path: '/admin/condominios',
+        name: 'condominiums',
+        component: () => import('pages/CondominiumsPage.vue'),
+      },
       {
         path: 'condominios/nuevo',
         name: 'create-condominium',
@@ -21,7 +25,21 @@ const routes: RouteRecordRaw[] = [
         name: 'edit-condominium',
         component: () => import('pages/EditCondominiumPage.vue'),
       },
-      { path: 'administradores', name: 'administrators', component: () => import('pages/AdministratorsPage.vue') },
+      {
+        path: 'condominios/:id/administradores',
+        name: 'condominium-administrators',
+        component: () => import('pages/CondominiumAdministratorsPage.vue'),
+      },
+      {
+        path: 'condominios/:id/casas',
+        name: 'condominium-houses',
+        component: () => import('pages/CondominiumHousesPage.vue'),
+      },
+      {
+        path: 'administradores',
+        name: 'administrators',
+        component: () => import('pages/AdministratorsPage.vue'),
+      },
       {
         path: 'administradores/nuevo',
         name: 'create-administrator',
@@ -33,10 +51,23 @@ const routes: RouteRecordRaw[] = [
         component: () => import('pages/EditAdministratorPage.vue'),
       },
       { path: 'usuarios', name: 'users', component: () => import('pages/UsersPage.vue') },
-      { path: 'usuarios/nuevo', name: 'create-user', component: () => import('pages/CreateUserPage.vue') },
-      { path: 'usuarios/:id/editar', name: 'edit-user', component: () => import('pages/EditUserPage.vue') },
+      {
+        path: 'usuarios/nuevo',
+        name: 'create-user',
+        component: () => import('pages/CreateUserPage.vue'),
+      },
+      {
+        path: 'usuarios/:id/editar',
+        name: 'edit-user',
+        component: () => import('pages/EditUserPage.vue'),
+      },
       { path: 'reportes', name: 'reports', component: () => import('pages/ReportsPage.vue') },
-      { path: 'configuracion', name: 'settings', component: () => import('pages/SettingsPage.vue') },
+      {
+        path: 'configuracion',
+        name: 'settings',
+        component: () => import('pages/SettingsPage.vue'),
+      },
+      { path: '/admin/roles', name: 'roles', component: () => import('pages/RolesPage.vue') },
     ],
   },
 

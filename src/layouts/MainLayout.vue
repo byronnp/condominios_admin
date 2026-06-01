@@ -16,8 +16,8 @@
           <div class="brand-block">
             <div class="brand-mark">CA</div>
             <div>
-              <q-toolbar-title class="brand-title">Condominios Admin</q-toolbar-title>
-              <div class="brand-subtitle">{{ roleLabel }}</div>
+              <q-toolbar-title class="brand-title">{{ userName }}</q-toolbar-title>
+              <div class="brand-subtitle">{{ headerAccountSubtitle }}</div>
             </div>
           </div>
         </div>
@@ -76,29 +76,55 @@
       <div class="drawer-profile">
         <q-avatar size="44px" color="primary" text-color="white">{{ userInitials }}</q-avatar>
         <div>
-          <strong>{{ roleLabel }}</strong>
-          <span>{{ userScope }}</span>
+          <strong>{{ userName }}</strong>
+          <span>{{ userEmail || userScope }}</span>
         </div>
       </div>
 
       <q-list class="nav-list">
-        <q-item
-          v-for="item in menuItems"
-          :key="item.label"
-          clickable
-          :to="item.to"
-          :exact="item.to === '/'"
-          active-class="nav-item--active"
-          class="nav-item"
-        >
-          <q-item-section avatar>
-            <q-icon :name="item.icon" />
-          </q-item-section>
-          <q-item-section>{{ item.label }}</q-item-section>
-          <q-tooltip v-if="isDrawerMini" anchor="center right" self="center left">
-            {{ item.label }}
-          </q-tooltip>
-        </q-item>
+        <template v-for="item in menuItems" :key="item.key">
+          <q-expansion-item
+            v-if="item.children.length > 0"
+            :icon="item.icon"
+            :label="item.label"
+            dense
+            expand-separator
+            class="nav-expansion"
+            header-class="nav-item"
+          >
+            <q-item
+              v-for="child in item.children"
+              :key="child.key"
+              clickable
+              :to="child.to"
+              :exact="child.to === '/'"
+              active-class="nav-item--active"
+              class="nav-item nav-item--child"
+            >
+              <q-item-section avatar>
+                <q-icon :name="child.icon" />
+              </q-item-section>
+              <q-item-section>{{ child.label }}</q-item-section>
+            </q-item>
+          </q-expansion-item>
+
+          <q-item
+            v-else
+            clickable
+            :to="item.to"
+            :exact="item.to === '/'"
+            active-class="nav-item--active"
+            class="nav-item"
+          >
+            <q-item-section avatar>
+              <q-icon :name="item.icon" />
+            </q-item-section>
+            <q-item-section>{{ item.label }}</q-item-section>
+            <q-tooltip v-if="isDrawerMini" anchor="center right" self="center left">
+              {{ item.label }}
+            </q-tooltip>
+          </q-item>
+        </template>
       </q-list>
     </q-drawer>
 
@@ -119,6 +145,18 @@ import { useRoute, useRouter } from 'vue-router';
 import { useAuth } from '../composables/useAuth';
 import { useAuthStore } from '../stores/auth-store';
 import type { UserRole } from '../interfaces/shared/user-role.interface';
+import type { AuthMenu } from '../interfaces/auth/login.interface';
+
+type NavMenuItem = {
+  key: string;
+  id?: string;
+  parentId?: string | number | null;
+  label: string;
+  icon: string;
+  to?: string | undefined;
+  sortOrder: number;
+  children: NavMenuItem[];
+};
 
 const leftDrawerOpen = ref(false);
 const drawerMini = ref(false);
@@ -132,6 +170,9 @@ const isDrawerMini = computed(() => drawerMini.value && !$q.screen.lt.md);
 
 const currentRole = computed(() => authStore.role);
 const userName = computed(() => authStore.userName);
+const userEmail = computed(() => authStore.userEmail);
+const userRoleName = computed(() => authStore.userRoleName);
+const headerAccountSubtitle = computed(() => userRoleName.value || roleLabel.value);
 const userInitials = computed(() => {
   return userName.value
     .split(' ')
@@ -170,6 +211,14 @@ const currentSection = computed(() => {
     return { label: 'Editar condominio', icon: 'edit' };
   }
 
+  if (route.path.includes('/condominios/') && route.path.endsWith('/administradores')) {
+    return { label: 'Administradores', icon: 'manage_accounts' };
+  }
+
+  if (route.path.includes('/condominios/') && route.path.endsWith('/casas')) {
+    return { label: 'Casas', icon: 'home_work' };
+  }
+
   if (route.path.startsWith('/condominios')) {
     return { label: 'Condominios', icon: 'apartment' };
   }
@@ -206,14 +255,25 @@ const currentSection = computed(() => {
     return { label: 'Configuracion', icon: 'settings' };
   }
 
+  if (route.path.startsWith('/roles')) {
+    return { label: 'Roles', icon: 'admin_panel_settings' };
+  }
+
   return { label: 'Dashboard', icon: 'dashboard' };
 });
 
 const menuItems = computed(() => {
+  const backendMenus = buildMenuTree(authStore.menus);
+
+  if (backendMenus.length > 0) {
+    return backendMenus;
+  }
+
   const shared = [{ label: 'Inicio', icon: 'dashboard', to: '/' }];
-  const roleMenus: Record<UserRole, { label: string; icon: string; to?: string }[]> = {
+  const roleMenus: Record<UserRole, { key?: string; label: string; icon: string; to?: string }[]> = {
     'super-admin': [
       ...shared,
+      { label: 'Roles', icon: 'admin_panel_settings', to: '/roles' },
       { label: 'Condominios', icon: 'apartment', to: '/condominios' },
       { label: 'Administradores', icon: 'manage_accounts', to: '/administradores' },
       { label: 'Usuarios', icon: 'groups', to: '/usuarios' },
@@ -239,7 +299,14 @@ const menuItems = computed(() => {
     ],
   };
 
-  return roleMenus[currentRole.value];
+  return roleMenus[currentRole.value].map((item) => ({
+    key: item.key || item.label,
+    label: item.label,
+    icon: item.icon,
+    to: item.to,
+    sortOrder: 0,
+    children: [],
+  }));
 });
 
 function toggleLeftDrawer() {
@@ -249,6 +316,104 @@ function toggleLeftDrawer() {
   }
 
   drawerMini.value = !drawerMini.value;
+}
+
+function normalizeMenuPath(path?: string | null) {
+  if (!path) {
+    return undefined;
+  }
+
+  return path.startsWith('/') ? path : `/${path}`;
+}
+
+function normalizeMenuIcon(icon?: string | null) {
+  const iconMap: Record<string, string> = {
+    'badge-dollar-sign': 'paid',
+    'building-2': 'apartment',
+    'calendar-plus': 'event_available',
+    'credit-card': 'credit_card',
+    'file-text': 'description',
+    'layout-dashboard': 'dashboard',
+    'list-tree': 'account_tree',
+    'panel-left': 'view_sidebar',
+    'receipt-text': 'receipt_long',
+    'shield-check': 'verified_user',
+    'user-plus': 'person_add',
+    users: 'groups',
+    'wallet-cards': 'account_balance_wallet',
+    home: 'home',
+    receipt: 'receipt',
+    settings: 'settings',
+  };
+
+  if (!icon) {
+    return 'radio_button_unchecked';
+  }
+
+  return iconMap[icon] || icon;
+}
+
+function buildMenuTree(menus: AuthMenu[]): NavMenuItem[] {
+  const flatMenus = flattenMenus(menus);
+  const activeMenus = flatMenus.filter((item) => item.is_active);
+  const itemsById = new Map<string, NavMenuItem>();
+
+  activeMenus.forEach((item) => {
+    const id = String(item.id);
+    itemsById.set(id, {
+      key: id,
+      id,
+      parentId: item.parent_id,
+      label: item.label,
+      icon: normalizeMenuIcon(item.icon),
+      to: normalizeMenuPath(item.path),
+      sortOrder: item.sort_order,
+      children: [],
+    });
+  });
+
+  const rootItems: NavMenuItem[] = [];
+
+  activeMenus.forEach((item) => {
+    const menuItem = itemsById.get(String(item.id));
+    if (!menuItem) {
+      return;
+    }
+
+    const parentId = item.parent_id === null || item.parent_id === 0 || item.parent_id === '0' ? null : String(item.parent_id);
+
+    if (!parentId) {
+      rootItems.push(menuItem);
+      return;
+    }
+
+    const parent = itemsById.get(parentId);
+    if (parent) {
+      parent.children.push(menuItem);
+      return;
+    }
+
+    rootItems.push(menuItem);
+  });
+
+  const sortMenus = (items: NavMenuItem[]) => {
+    items.sort((first, second) => first.sortOrder - second.sortOrder);
+    items.forEach((item) => sortMenus(item.children));
+  };
+
+  sortMenus(rootItems);
+  return rootItems.filter((item) => !(item.parentId === null && !item.to && item.children.length === 0));
+}
+
+function flattenMenus(menus: AuthMenu[], parentId: number | string | null = null): AuthMenu[] {
+  return menus.flatMap((menu) => {
+    const normalizedMenu = {
+      ...menu,
+      parent_id: menu.parent_id ?? parentId,
+    };
+
+    return [normalizedMenu, ...flattenMenus(menu.children || [], menu.id)];
+  });
 }
 
 async function handleLogout() {

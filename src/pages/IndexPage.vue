@@ -61,19 +61,6 @@
             <p>{{ dashboard.sidePanel.subtitle }}</p>
           </div>
         </div>
-
-        <div class="quick-actions">
-          <q-btn
-            v-for="action in dashboard.sidePanel.actions"
-            :key="action.label"
-            unelevated
-            align="left"
-            :icon="action.icon"
-            :label="action.label"
-            no-caps
-            class="quick-action"
-          />
-        </div>
       </aside>
     </section>
   </q-page>
@@ -83,45 +70,76 @@
 import { computed } from 'vue';
 import type { DashboardView } from '../interfaces/dashboard/dashboard.interface';
 import type { UserRole } from '../interfaces/shared/user-role.interface';
+import { useAuthStore } from '../stores/auth-store';
 
-const currentRole = computed<UserRole>(() => {
-  if (typeof window === 'undefined') {
-    return 'super-admin';
-  }
-
-  const storedRole = window.localStorage.getItem('condominios-role');
-  if (storedRole === 'condo-admin' || storedRole === 'resident') {
-    return storedRole;
-  }
-
-  return 'super-admin';
-});
+const authStore = useAuthStore();
+const currentRole = computed<UserRole>(() => authStore.role);
 
 const dashboard = computed(() => {
-  const dashboards: Record<
-    UserRole,
-    DashboardView
-  > = {
+  const dashboards: Record<UserRole, DashboardView> = {
     'super-admin': {
       copy: {
         eyebrow: 'Vista general',
         title: 'Control central de condominios',
-        description: 'Supervisa condominios, administradores, usuarios y pagos desde una vista ejecutiva.',
+        description:
+          'Supervisa condominios, administradores, usuarios y pagos desde una vista ejecutiva.',
       },
       primaryAction: { label: 'Nuevo condominio', icon: 'add_business', to: '/condominios/nuevo' },
       metrics: [
-        { label: 'Condominios activos', value: '18', detail: '+3 este mes', icon: 'apartment', tone: 'positive' },
-        { label: 'Administradores', value: '26', detail: '4 por activar', icon: 'manage_accounts', tone: 'warning' },
-        { label: 'Usuarios totales', value: '1.284', detail: '+8.2%', icon: 'groups', tone: 'positive' },
-        { label: 'Pagos globales', value: '$48.760', detail: '92% recaudado', icon: 'payments', tone: 'neutral' },
+        {
+          label: 'Condominios activos',
+          value: '18',
+          detail: '+3 este mes',
+          icon: 'apartment',
+          tone: 'positive',
+        },
+        {
+          label: 'Administradores',
+          value: '26',
+          detail: '4 por activar',
+          icon: 'manage_accounts',
+          tone: 'warning',
+        },
+        {
+          label: 'Usuarios totales',
+          value: '1.284',
+          detail: '+8.2%',
+          icon: 'groups',
+          tone: 'positive',
+        },
+        {
+          label: 'Pagos globales',
+          value: '$48.760',
+          detail: '92% recaudado',
+          icon: 'payments',
+          tone: 'neutral',
+        },
       ],
       mainPanel: {
         title: 'Actividad de plataforma',
         subtitle: 'Eventos que requieren seguimiento del equipo central.',
         items: [
-          { title: 'Condominio Altos del Valle creado', caption: 'Pendiente asignar administrador', status: 'Pendiente', icon: 'domain_add', color: 'warning' },
-          { title: 'Mirador Norte alcanzo 96% de recaudacion', caption: 'Corte mensual de mayo', status: 'OK', icon: 'trending_up', color: 'positive' },
-          { title: '3 administradores solicitaron acceso', caption: 'Revision de cuentas nuevas', status: 'Revision', icon: 'person_add', color: 'primary' },
+          {
+            title: 'Condominio Altos del Valle creado',
+            caption: 'Pendiente asignar administrador',
+            status: 'Pendiente',
+            icon: 'domain_add',
+            color: 'warning',
+          },
+          {
+            title: 'Mirador Norte alcanzo 96% de recaudacion',
+            caption: 'Corte mensual de mayo',
+            status: 'OK',
+            icon: 'trending_up',
+            color: 'positive',
+          },
+          {
+            title: '3 administradores solicitaron acceso',
+            caption: 'Revision de cuentas nuevas',
+            status: 'Revision',
+            icon: 'person_add',
+            color: 'primary',
+          },
         ],
       },
       sidePanel: {
@@ -138,22 +156,65 @@ const dashboard = computed(() => {
       copy: {
         eyebrow: 'Operacion diaria',
         title: 'Gestion de Mirador Norte',
-        description: 'Administra propiedades, residentes, pagos, invitados y comunicados del condominio.',
+        description:
+          'Administra propiedades, residentes, pagos, invitados y comunicados del condominio.',
       },
       primaryAction: { label: 'Registrar pago', icon: 'add_card' },
       metrics: [
-        { label: 'Propiedades', value: '84', detail: '79 ocupadas', icon: 'home_work', tone: 'neutral' },
-        { label: 'Pagos pendientes', value: '16', detail: '$4.280 por cobrar', icon: 'receipt_long', tone: 'warning' },
-        { label: 'Invitados hoy', value: '23', detail: '5 por confirmar', icon: 'badge', tone: 'warning' },
-        { label: 'Solicitudes abiertas', value: '7', detail: '2 urgentes', icon: 'support_agent', tone: 'neutral' },
+        {
+          label: 'Propiedades',
+          value: '84',
+          detail: '79 ocupadas',
+          icon: 'home_work',
+          tone: 'neutral',
+        },
+        {
+          label: 'Pagos pendientes',
+          value: '16',
+          detail: '$4.280 por cobrar',
+          icon: 'receipt_long',
+          tone: 'warning',
+        },
+        {
+          label: 'Invitados hoy',
+          value: '23',
+          detail: '5 por confirmar',
+          icon: 'badge',
+          tone: 'warning',
+        },
+        {
+          label: 'Solicitudes abiertas',
+          value: '7',
+          detail: '2 urgentes',
+          icon: 'support_agent',
+          tone: 'neutral',
+        },
       ],
       mainPanel: {
         title: 'Pendientes del condominio',
         subtitle: 'Prioridades visibles para el administrador.',
         items: [
-          { title: 'Casa B-14 reporto pago', caption: 'Comprobante pendiente de validacion', status: 'Validar', icon: 'payments', color: 'primary' },
-          { title: 'Invitado de Torre A llega a las 18:00', caption: 'Acceso vehicular solicitado', status: 'Hoy', icon: 'directions_car', color: 'warning' },
-          { title: 'Comunicado de mantenimiento programado', caption: 'Enviar a residentes antes de las 16:00', status: 'Borrador', icon: 'campaign', color: 'secondary' },
+          {
+            title: 'Casa B-14 reporto pago',
+            caption: 'Comprobante pendiente de validacion',
+            status: 'Validar',
+            icon: 'payments',
+            color: 'primary',
+          },
+          {
+            title: 'Invitado de Torre A llega a las 18:00',
+            caption: 'Acceso vehicular solicitado',
+            status: 'Hoy',
+            icon: 'directions_car',
+            color: 'warning',
+          },
+          {
+            title: 'Comunicado de mantenimiento programado',
+            caption: 'Enviar a residentes antes de las 16:00',
+            status: 'Borrador',
+            icon: 'campaign',
+            color: 'secondary',
+          },
         ],
       },
       sidePanel: {
@@ -170,22 +231,65 @@ const dashboard = computed(() => {
       copy: {
         eyebrow: 'Mi vivienda',
         title: 'Resumen de Casa B-14',
-        description: 'Consulta pagos, historial, invitados y novedades importantes de tu condominio.',
+        description:
+          'Consulta pagos, historial, invitados y novedades importantes de tu condominio.',
       },
       primaryAction: { label: 'Nuevo invitado', icon: 'person_add_alt' },
       metrics: [
-        { label: 'Saldo pendiente', value: '$120', detail: 'Vence 31 mayo', icon: 'account_balance_wallet', tone: 'warning' },
-        { label: 'Ultimo pago', value: '$120', detail: 'Pagado el 03 mayo', icon: 'check_circle', tone: 'positive' },
-        { label: 'Invitados activos', value: '3', detail: '2 ingresan hoy', icon: 'badge', tone: 'neutral' },
-        { label: 'Solicitudes', value: '1', detail: 'En revision', icon: 'support_agent', tone: 'neutral' },
+        {
+          label: 'Saldo pendiente',
+          value: '$120',
+          detail: 'Vence 31 mayo',
+          icon: 'account_balance_wallet',
+          tone: 'warning',
+        },
+        {
+          label: 'Ultimo pago',
+          value: '$120',
+          detail: 'Pagado el 03 mayo',
+          icon: 'check_circle',
+          tone: 'positive',
+        },
+        {
+          label: 'Invitados activos',
+          value: '3',
+          detail: '2 ingresan hoy',
+          icon: 'badge',
+          tone: 'neutral',
+        },
+        {
+          label: 'Solicitudes',
+          value: '1',
+          detail: 'En revision',
+          icon: 'support_agent',
+          tone: 'neutral',
+        },
       ],
       mainPanel: {
         title: 'Historial reciente',
         subtitle: 'Movimientos y eventos asociados a tu vivienda.',
         items: [
-          { title: 'Pago de alicuota confirmado', caption: 'Mayo 2026 - Casa B-14', status: 'Pagado', icon: 'receipt', color: 'positive' },
-          { title: 'Invitado: Daniel Perez', caption: 'Autorizado para hoy de 17:00 a 20:00', status: 'Activo', icon: 'badge', color: 'primary' },
-          { title: 'Solicitud de mantenimiento', caption: 'Revision de luminaria exterior', status: 'Revision', icon: 'build', color: 'warning' },
+          {
+            title: 'Pago de alicuota confirmado',
+            caption: 'Mayo 2026 - Casa B-14',
+            status: 'Pagado',
+            icon: 'receipt',
+            color: 'positive',
+          },
+          {
+            title: 'Invitado: Daniel Perez',
+            caption: 'Autorizado para hoy de 17:00 a 20:00',
+            status: 'Activo',
+            icon: 'badge',
+            color: 'primary',
+          },
+          {
+            title: 'Solicitud de mantenimiento',
+            caption: 'Revision de luminaria exterior',
+            status: 'Revision',
+            icon: 'build',
+            color: 'warning',
+          },
         ],
       },
       sidePanel: {

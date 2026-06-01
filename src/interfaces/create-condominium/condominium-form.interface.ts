@@ -4,9 +4,16 @@ export interface CreateCondominiumForm {
   city: string;
   sector: string;
   address: string;
-  units: number;
-  adminName: string;
-  adminEmail: string;
-  adminPhone: string;
-  plan: string;
+  statusId: number | string | null;
+  totalHouses: number | null;
+}
+
+export interface CreateCondominiumPayload {
+  name: string;
+  ruc: string;
+  address: string;
+  city: string;
+  sector: string;
+  status_id: number;
+  total_houses: number;
 }

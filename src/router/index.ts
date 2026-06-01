@@ -6,7 +6,7 @@ import {
   createWebHistory,
 } from 'vue-router';
 import routes from './routes';
-import { getAuthenticatedUser } from '../services/auth.service';
+import { getAuthenticatedMenus, getAuthenticatedUser } from '../services/auth.service';
 import { useAuthStore } from '../stores/auth-store';
 
 /*
@@ -48,6 +48,10 @@ export default defineRouter((/* { store, ssrContext } */) => {
       const response = await getAuthenticatedUser();
       if (response.success) {
         authStore.setSession(response.data?.user);
+        const menusResponse = await getAuthenticatedMenus();
+        if (menusResponse.success) {
+          authStore.setMenus(menusResponse.data);
+        }
         return true;
       }
     } catch {

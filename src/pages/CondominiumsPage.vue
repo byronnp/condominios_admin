@@ -41,11 +41,18 @@
         </q-input>
 
         <div class="table-toolbar__filters">
-          <q-chip outline color="primary" icon="apartment" label="18 activos" />
-          <q-chip outline color="warning" icon="pending_actions" label="4 en revision" />
-          <q-chip outline color="positive" icon="verified" label="12 al dia" />
+          <q-chip outline color="primary" icon="apartment" :label="`${activeCount} activos`" />
+          <q-chip outline color="warning" icon="pending_actions" :label="`${pendingCount} en revision`" />
+          <q-chip outline color="positive" icon="verified" :label="`${currentCount} al dia`" />
         </div>
       </div>
+
+      <q-banner v-if="error" rounded class="bg-red-1 text-negative q-mb-md">
+        {{ error }}
+        <template #action>
+          <q-btn flat color="negative" label="Reintentar" no-caps @click="loadCondominiums" />
+        </template>
+      </q-banner>
 
       <q-table
         flat
@@ -53,6 +60,7 @@
         :columns="columns"
         row-key="id"
         :filter="filter"
+        :loading="loading"
         :pagination="{ rowsPerPage: 6 }"
         :grid="$q.screen.lt.md"
         class="soft-table"
@@ -89,12 +97,38 @@
             <div class="row-actions">
               <q-btn outline color="primary" icon="visibility" label="Ver" no-caps @click="openDetails(props.row)" />
               <q-btn
+                outline
+                color="primary"
+                icon="manage_accounts"
+                label="Admins"
+                no-caps
+                @click="goToAdmins(props.row)"
+              />
+              <q-btn
+                outline
+                color="primary"
+                icon="home_work"
+                label="Casas"
+                no-caps
+                @click="goToHouses(props.row)"
+              />
+              <q-btn
                 flat
                 color="primary"
                 icon="edit"
                 label="Editar"
                 :to="`/condominios/${props.row.id}/editar`"
                 no-caps
+              />
+              <q-btn
+                flat
+                color="negative"
+                icon="delete"
+                label="Eliminar"
+                no-caps
+                :loading="deletingId === props.row.id"
+                :disable="deletingId !== null && deletingId !== props.row.id"
+                @click="deleteCondominium(props.row)"
               />
             </div>
           </q-td>
@@ -128,12 +162,38 @@
             <div class="row-actions row-actions--mobile">
               <q-btn outline color="primary" icon="visibility" label="Ver" no-caps @click="openDetails(props.row)" />
               <q-btn
+                outline
+                color="primary"
+                icon="manage_accounts"
+                label="Admins"
+                no-caps
+                @click="goToAdmins(props.row)"
+              />
+              <q-btn
+                outline
+                color="primary"
+                icon="home_work"
+                label="Casas"
+                no-caps
+                @click="goToHouses(props.row)"
+              />
+              <q-btn
                 flat
                 color="primary"
                 icon="edit"
                 label="Editar"
                 :to="`/condominios/${props.row.id}/editar`"
                 no-caps
+              />
+              <q-btn
+                flat
+                color="negative"
+                icon="delete"
+                label="Eliminar"
+                no-caps
+                :loading="deletingId === props.row.id"
+                :disable="deletingId !== null && deletingId !== props.row.id"
+                @click="deleteCondominium(props.row)"
               />
             </div>
           </div>
@@ -150,10 +210,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useQuasar, type QTableColumn } from 'quasar';
 import { useRouter } from 'vue-router';
 import CondominiumDetailsDialog from 'components/dialogs/CondominiumDetailsDialog.vue';
+import { useCondominiums } from '../composables/useCondominiums';
 import type { CondominiumDetails } from '../interfaces/condominiums/condominium.interface';
 import type { CondominiumMetric } from '../interfaces/condominiums/condominium-metric.interface';
 
@@ -164,13 +225,51 @@ const router = useRouter();
 const $q = useQuasar();
 const showDetailsDialog = ref(false);
 const selectedCondominium = ref<Condominium | null>(null);
+const { condominiums, loading, deletingId, error, loadCondominiums, removeCondominium } = useCondominiums();
 
-const metrics: CondominiumMetric[] = [
-  { label: 'Condominios', value: '18', detail: '16 operativos', icon: 'apartment', tone: 'positive' },
-  { label: 'Unidades', value: '1.284', detail: '91% ocupadas', icon: 'home_work', tone: 'neutral' },
-  { label: 'Recaudacion', value: '$48.760', detail: '+6.4% mensual', icon: 'payments', tone: 'positive' },
-  { label: 'Alertas', value: '4', detail: 'Requieren revision', icon: 'flag', tone: 'warning' },
-];
+const activeCount = computed(() => condominiums.value.filter((condominium) => condominium.statusColor === 'positive').length);
+const pendingCount = computed(() => condominiums.value.filter((condominium) => condominium.statusColor === 'warning').length);
+const currentCount = computed(() => condominiums.value.filter((condominium) => condominium.updatedAt !== 'Sin actualizar').length);
+const totalUnits = computed(() => condominiums.value.reduce((total, condominium) => total + condominium.units, 0));
+const averageOccupancy = computed(() => {
+  if (!condominiums.value.length) {
+    return 0;
+  }
+
+  const occupancyTotal = condominiums.value.reduce((total, condominium) => total + condominium.occupancy, 0);
+  return Math.round(occupancyTotal / condominiums.value.length);
+});
+
+const metrics = computed<CondominiumMetric[]>(() => [
+  {
+    label: 'Condominios',
+    value: String(condominiums.value.length),
+    detail: `${activeCount.value} operativos`,
+    icon: 'apartment',
+    tone: 'positive',
+  },
+  {
+    label: 'Unidades',
+    value: new Intl.NumberFormat('es-EC').format(totalUnits.value),
+    detail: `${averageOccupancy.value}% ocupadas`,
+    icon: 'home_work',
+    tone: 'neutral',
+  },
+  {
+    label: 'Recaudacion',
+    value: '-',
+    detail: 'Segun API',
+    icon: 'payments',
+    tone: 'positive',
+  },
+  {
+    label: 'Alertas',
+    value: String(pendingCount.value),
+    detail: 'Requieren revision',
+    icon: 'flag',
+    tone: 'warning',
+  },
+]);
 
 const columns: QTableColumn<Condominium>[] = [
   { name: 'name', label: 'Condominio', field: 'name', align: 'left', sortable: true },
@@ -184,93 +283,6 @@ const columns: QTableColumn<Condominium>[] = [
   { name: 'actions', label: 'Acciones', field: 'id', align: 'right' },
 ];
 
-const condominiums: Condominium[] = [
-  {
-    id: 1,
-    initials: 'MN',
-    name: 'Mirador Norte',
-    address: 'Av. de los Granados N42-18',
-    city: 'Quito',
-    administrator: 'Maria Beltran',
-    units: 84,
-    occupancy: 94,
-    revenue: '$8.420',
-    status: 'Activo',
-    statusColor: 'positive',
-    updatedAt: 'Hoy',
-  },
-  {
-    id: 2,
-    initials: 'AV',
-    name: 'Altos del Valle',
-    address: 'Via Intervalles km 7',
-    city: 'Quito',
-    administrator: 'Pendiente',
-    units: 126,
-    occupancy: 72,
-    revenue: '$5.180',
-    status: 'En revision',
-    statusColor: 'warning',
-    updatedAt: 'Ayer',
-  },
-  {
-    id: 3,
-    initials: 'PB',
-    name: 'Portal del Bosque',
-    address: 'Calle Cedros y Arrayanes',
-    city: 'Cuenca',
-    administrator: 'Jorge Andrade',
-    units: 64,
-    occupancy: 88,
-    revenue: '$4.960',
-    status: 'Activo',
-    statusColor: 'positive',
-    updatedAt: '15 mayo',
-  },
-  {
-    id: 4,
-    initials: 'SC',
-    name: 'Sol del Caribe',
-    address: 'Malecon 2000, bloque C',
-    city: 'Guayaquil',
-    administrator: 'Paula Mendez',
-    units: 142,
-    occupancy: 97,
-    revenue: '$11.340',
-    status: 'Activo',
-    statusColor: 'positive',
-    updatedAt: '14 mayo',
-  },
-  {
-    id: 5,
-    initials: 'RA',
-    name: 'Riberas del Austro',
-    address: 'Av. Loja y Primero de Mayo',
-    city: 'Cuenca',
-    administrator: 'Sofia Cardenas',
-    units: 58,
-    occupancy: 81,
-    revenue: '$3.870',
-    status: 'Pendiente',
-    statusColor: 'warning',
-    updatedAt: '12 mayo',
-  },
-  {
-    id: 6,
-    initials: 'LC',
-    name: 'Las Cumbres',
-    address: 'Ruta Viva km 11',
-    city: 'Quito',
-    administrator: 'Diego Torres',
-    units: 96,
-    occupancy: 90,
-    revenue: '$7.230',
-    status: 'Activo',
-    statusColor: 'positive',
-    updatedAt: '10 mayo',
-  },
-];
-
 function openDetails(condominium: Condominium) {
   selectedCondominium.value = condominium;
   showDetailsDialog.value = true;
@@ -280,4 +292,39 @@ function goToEdit(id: number) {
   showDetailsDialog.value = false;
   void router.push(`/condominios/${id}/editar`);
 }
+
+function goToAdmins(condominium: Condominium) {
+  console.info('Datos enviados a administradores del condominio', condominium);
+  void router.push(`/condominios/${condominium.id}/administradores`);
+}
+
+function goToHouses(condominium: Condominium) {
+  void router.push(`/condominios/${condominium.id}/casas`);
+}
+
+function deleteCondominium(condominium: Condominium) {
+  $q.dialog({
+    title: 'Eliminar condominio',
+    message: `¿Deseas eliminar ${condominium.name}? Esta accion no se puede deshacer.`,
+    cancel: {
+      flat: true,
+      color: 'primary',
+      label: 'Cancelar',
+      noCaps: true,
+    },
+    ok: {
+      color: 'negative',
+      icon: 'delete',
+      label: 'Eliminar',
+      noCaps: true,
+    },
+    persistent: true,
+  }).onOk(() => {
+    void removeCondominium(condominium.id);
+  });
+}
+
+onMounted(() => {
+  void loadCondominiums();
+});
 </script>

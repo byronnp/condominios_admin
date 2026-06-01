@@ -1,4 +1,10 @@
-import type { AuthMeResponse, LoginPayload, LoginResponse, LogoutResponse } from '../interfaces/auth/login.interface';
+import type {
+  AuthMenusResponse,
+  AuthMeResponse,
+  LoginPayload,
+  LoginResponse,
+  LogoutResponse,
+} from '../interfaces/auth/login.interface';
 import { apiGet, apiPost, apiPostWithoutPayload } from './api.service';
 
 export function login(payload: LoginPayload) {
@@ -7,6 +13,10 @@ export function login(payload: LoginPayload) {
 
 export function getAuthenticatedUser() {
   return apiGet<AuthMeResponse>('auth/me');
+}
+
+export function getAuthenticatedMenus() {
+  return apiGet<AuthMenusResponse>('auth/me/menus');
 }
 
 export function logout() {

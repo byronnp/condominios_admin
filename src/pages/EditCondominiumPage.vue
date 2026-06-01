@@ -5,16 +5,38 @@
         <p class="eyebrow">Editar condominio</p>
         <h1>{{ form.name }}</h1>
         <p>
-          Actualiza la informacion principal del condominio, su responsable administrativo y el estado
-          operativo visible en la plataforma.
+          Actualiza la informacion principal del condominio, su responsable administrativo y el
+          estado operativo visible en la plataforma.
         </p>
       </div>
 
       <div class="heading-actions">
-        <q-btn outline color="primary" icon="arrow_back" label="Volver" to="/condominios" no-caps />
-        <q-btn color="primary" icon="save" label="Guardar cambios" no-caps @click="submitForm" />
+        <q-btn
+          outline
+          color="primary"
+          icon="arrow_back"
+          label="Volver"
+          to="/admin/condominios"
+          no-caps
+        />
+        <q-btn
+          color="primary"
+          icon="save"
+          label="Guardar cambios"
+          no-caps
+          :loading="saving"
+          :disable="!canSubmit"
+          @click="submitForm"
+        />
       </div>
     </section>
+
+    <q-banner v-if="error" rounded class="bg-red-1 text-negative q-mb-md">
+      {{ error }}
+      <template #action>
+        <q-btn flat color="negative" label="Reintentar" no-caps @click="loadPageData" />
+      </template>
+    </q-banner>
 
     <q-form class="create-layout" @submit.prevent="submitForm">
       <section class="panel form-panel">
@@ -26,17 +48,35 @@
         </div>
 
         <div class="form-grid">
-          <q-input v-model="form.name" outlined dense label="Nombre del condominio" class="soft-input" />
-          <q-input v-model="form.ruc" outlined dense label="RUC o identificacion" class="soft-input" />
+          <q-input
+            v-model="form.name"
+            outlined
+            dense
+            label="Nombre del condominio"
+            class="soft-input"
+          />
+          <q-input
+            v-model="form.ruc"
+            outlined
+            dense
+            label="RUC o identificacion"
+            class="soft-input"
+          />
           <q-input v-model="form.city" outlined dense label="Ciudad" class="soft-input" />
           <q-input v-model="form.sector" outlined dense label="Sector" class="soft-input" />
-          <q-input v-model="form.address" outlined dense label="Direccion completa" class="soft-input form-grid__full" />
+          <q-input
+            v-model="form.address"
+            outlined
+            dense
+            label="Direccion completa"
+            class="soft-input form-grid__full"
+          />
           <q-input
             v-model.number="form.units"
             outlined
             dense
             type="number"
-            label="Numero de unidades"
+            label="Total de casas"
             class="soft-input"
           />
           <q-select
@@ -44,8 +84,14 @@
             outlined
             dense
             :options="statusOptions"
+            option-value="id"
+            option-label="name"
+            emit-value
+            map-options
             label="Estado operativo"
             class="soft-input"
+            :loading="statusLoading"
+            :disable="loading || statusLoading"
           />
         </div>
       </section>
@@ -53,15 +99,53 @@
       <section class="panel form-panel">
         <div class="panel-header">
           <div>
-            <h2>Responsables</h2>
-            <p>Datos del administrador y plan activo.</p>
+            <h2>Responsable administrativo</h2>
+            <p>Asignacion del administrador principal del condominio.</p>
           </div>
         </div>
 
-        <div class="form-grid">
-          <q-input v-model="form.adminName" outlined dense label="Administrador principal" class="soft-input" />
-          <q-input v-model="form.adminEmail" outlined dense type="email" label="Correo del administrador" class="soft-input" />
-          <q-input v-model="form.adminPhone" outlined dense label="Telefono" class="soft-input" />
+        <q-banner v-if="!hasAssignedAdministrator" rounded class="bg-amber-1 text-warning q-mb-md">
+          Este condominio aun no tiene un responsable administrativo asignado. Asigna o crea un
+          administrador desde la seccion Administradores para mantener la gestion del condominio
+          correctamente vinculada.
+          <template #action>
+            <q-btn
+              flat
+              color="warning"
+              icon="manage_accounts"
+              label="Ir a administradores"
+              no-caps
+              :to="`/condominios/${selectedId}/administradores`"
+            />
+          </template>
+        </q-banner>
+
+        <div v-else class="form-grid">
+          <q-input
+            v-model="form.adminName"
+            outlined
+            dense
+            label="Administrador principal"
+            class="soft-input"
+            readonly
+          />
+          <q-input
+            v-model="form.adminEmail"
+            outlined
+            dense
+            type="email"
+            label="Correo del administrador"
+            class="soft-input"
+            readonly
+          />
+          <q-input
+            v-model="form.adminPhone"
+            outlined
+            dense
+            label="Telefono"
+            class="soft-input"
+            readonly
+          />
           <q-select
             v-model="form.plan"
             outlined
@@ -94,7 +178,15 @@
         </q-list>
 
         <div class="quick-actions summary-actions">
-          <q-btn type="submit" color="primary" icon="save" label="Guardar cambios" no-caps />
+          <q-btn
+            type="submit"
+            color="primary"
+            icon="save"
+            label="Guardar cambios"
+            no-caps
+            :loading="saving"
+            :disable="!canSubmit"
+          />
           <q-btn outline color="primary" icon="history" label="Ver historial" no-caps />
         </div>
       </aside>
@@ -103,97 +195,32 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import type { EditCondominiumForm } from '../interfaces/edit-condominium/condominium-form.interface';
+import { useCatalog } from '../composables/useCatalog';
+import type { AdminCondominiumResponse } from '../interfaces/condominiums/condominium.interface';
+import type {
+  EditCondominiumForm,
+  UpdateCondominiumPayload,
+} from '../interfaces/edit-condominium/condominium-form.interface';
+import { getAdminCondominiumById, updateAdminCondominium } from '../services/condominiums.service';
 
 const route = useRoute();
+const operationalStatusCatalogId = '4';
 const planOptions = ['Estandar', 'Profesional', 'Corporativo'];
-const statusOptions = ['Activo', 'En revision', 'Pendiente', 'Inactivo'];
-
-const condominiums: Record<string, EditCondominiumForm> = {
-  '1': {
-    name: 'Mirador Norte',
-    ruc: '1790012845001',
-    city: 'Quito',
-    sector: 'Granados',
-    address: 'Av. de los Granados N42-18',
-    units: 84,
-    status: 'Activo',
-    adminName: 'Maria Beltran',
-    adminEmail: 'maria@miradornorte.com',
-    adminPhone: '098 420 1180',
-    plan: 'Profesional',
-  },
-  '2': {
-    name: 'Altos del Valle',
-    ruc: '1790084512001',
-    city: 'Quito',
-    sector: 'Intervalles',
-    address: 'Via Intervalles km 7',
-    units: 126,
-    status: 'En revision',
-    adminName: 'Pendiente',
-    adminEmail: 'admin@altosdelvalle.com',
-    adminPhone: '099 210 8842',
-    plan: 'Corporativo',
-  },
-  '3': {
-    name: 'Portal del Bosque',
-    ruc: '0190428011001',
-    city: 'Cuenca',
-    sector: 'El Bosque',
-    address: 'Calle Cedros y Arrayanes',
-    units: 64,
-    status: 'Activo',
-    adminName: 'Jorge Andrade',
-    adminEmail: 'jorge@portaldelbosque.com',
-    adminPhone: '098 610 3470',
-    plan: 'Estandar',
-  },
-  '4': {
-    name: 'Sol del Caribe',
-    ruc: '0992841123001',
-    city: 'Guayaquil',
-    sector: 'Malecon',
-    address: 'Malecon 2000, bloque C',
-    units: 142,
-    status: 'Activo',
-    adminName: 'Paula Mendez',
-    adminEmail: 'paula@soldelcaribe.com',
-    adminPhone: '099 540 2901',
-    plan: 'Corporativo',
-  },
-  '5': {
-    name: 'Riberas del Austro',
-    ruc: '0198203417001',
-    city: 'Cuenca',
-    sector: 'Yanuncay',
-    address: 'Av. Loja y Primero de Mayo',
-    units: 58,
-    status: 'Pendiente',
-    adminName: 'Sofia Cardenas',
-    adminEmail: 'sofia@riberasdelaustro.com',
-    adminPhone: '098 770 4512',
-    plan: 'Estandar',
-  },
-  '6': {
-    name: 'Las Cumbres',
-    ruc: '1794528109001',
-    city: 'Quito',
-    sector: 'Ruta Viva',
-    address: 'Ruta Viva km 11',
-    units: 96,
-    status: 'Activo',
-    adminName: 'Diego Torres',
-    adminEmail: 'diego@lascumbres.com',
-    adminPhone: '099 138 7604',
-    plan: 'Profesional',
-  },
-};
+const {
+  items: statusOptions,
+  loading: statusLoading,
+  error: statusError,
+  loadCatalog: loadStatusOptions,
+} = useCatalog(operationalStatusCatalogId);
 
 const selectedId = String(route.params.id || '1');
-const selectedCondominium: EditCondominiumForm = condominiums[selectedId] ?? {
+const loading = ref(false);
+const saving = ref(false);
+const error = ref('');
+
+const form = reactive<EditCondominiumForm>({
   name: 'Condominio no encontrado',
   ruc: '',
   city: '',
@@ -205,19 +232,167 @@ const selectedCondominium: EditCondominiumForm = condominiums[selectedId] ?? {
   adminEmail: '',
   adminPhone: '',
   plan: 'Estandar',
-};
+});
 
-const form = reactive<EditCondominiumForm>({ ...selectedCondominium });
+function toNumber(value: number | string | undefined, fallback = 0) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function getTotalHouses(condominium: AdminCondominiumResponse) {
+  return toNumber(
+    condominium.total_houses ??
+      condominium.total_homes ??
+      condominium.total_casas ??
+      condominium.houses_count ??
+      condominium.units ??
+      condominium.total_units,
+  );
+}
+
+function getStatusValue(status: AdminCondominiumResponse['status']) {
+  if (status && typeof status === 'object') {
+    return String(status.id || status.name || 'Pendiente');
+  }
+
+  return status !== undefined && status !== null && status !== '' ? String(status) : 'Pendiente';
+}
+
+function toEditForm(condominium: AdminCondominiumResponse): EditCondominiumForm {
+  return {
+    name: condominium.name || 'Condominio no encontrado',
+    ruc: condominium.ruc || '',
+    city: condominium.city || '',
+    sector: condominium.sector || '',
+    address: condominium.address || '',
+    units: getTotalHouses(condominium),
+    status: getStatusValue(condominium.status),
+    adminName:
+      condominium.administrator_name ||
+      condominium.administrator ||
+      condominium.admin_name ||
+      'Pendiente',
+    adminEmail: condominium.administrator_email || condominium.admin_email || '',
+    adminPhone: condominium.administrator_phone || condominium.admin_phone || '',
+    plan: condominium.plan || 'Estandar',
+  };
+}
+
+function assignForm(values: EditCondominiumForm) {
+  Object.assign(form, values);
+}
+
+const selectedStatusName = computed(() => {
+  const selectedStatus = statusOptions.value.find(
+    (status) => String(status.id) === String(form.status),
+  );
+  return selectedStatus?.name || form.status || 'Pendiente';
+});
+
+const hasAssignedAdministrator = computed(() => {
+  const adminName = form.adminName.trim().toLowerCase();
+  return Boolean(adminName) && adminName !== 'pendiente' && adminName !== 'sin administrador';
+});
+
+const canSubmit = computed(
+  () =>
+    Boolean(form.name.trim()) &&
+    Boolean(form.ruc.trim()) &&
+    Boolean(form.address.trim()) &&
+    Boolean(form.city.trim()) &&
+    Boolean(form.sector.trim()) &&
+    Boolean(getSelectedStatusId()) &&
+    Number(form.units) >= 0 &&
+    !loading.value &&
+    !saving.value,
+);
+
+function getSelectedStatusId() {
+  const directStatusId = Number(form.status);
+
+  if (Number.isFinite(directStatusId) && directStatusId > 0) {
+    return directStatusId;
+  }
+
+  const selectedStatus = statusOptions.value.find(
+    (status) => status.name.toLowerCase() === form.status.toLowerCase(),
+  );
+  const catalogStatusId = Number(selectedStatus?.id);
+  return Number.isFinite(catalogStatusId) && catalogStatusId > 0 ? catalogStatusId : null;
+}
+
+async function loadCondominium() {
+  loading.value = true;
+  error.value = '';
+
+  try {
+    const condominium = await getAdminCondominiumById(selectedId);
+
+    if (!condominium) {
+      throw new Error('No se encontro el condominio solicitado');
+    }
+
+    assignForm(toEditForm(condominium));
+  } catch (exception) {
+    error.value =
+      exception instanceof Error ? exception.message : 'No se pudo cargar el condominio';
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function loadPageData() {
+  await Promise.all([loadCondominium(), loadStatusOptions()]);
+
+  if (statusError.value) {
+    error.value = statusError.value;
+  }
+}
 
 const summaryItems = computed(() => [
   { icon: 'apartment', label: 'Condominio', value: form.name || 'Sin nombre' },
-  { icon: 'location_on', label: 'Ubicacion', value: `${form.city || 'Sin ciudad'} - ${form.sector || 'Sin sector'}` },
-  { icon: 'home_work', label: 'Unidades', value: `${form.units || 0} unidades` },
-  { icon: 'verified', label: 'Estado', value: form.status || 'Pendiente' },
+  {
+    icon: 'location_on',
+    label: 'Ubicacion',
+    value: `${form.city || 'Sin ciudad'} - ${form.sector || 'Sin sector'}`,
+  },
+  { icon: 'home_work', label: 'Casas', value: `${form.units || 0} casas` },
+  { icon: 'verified', label: 'Estado', value: selectedStatusName.value },
   { icon: 'manage_accounts', label: 'Responsable', value: form.adminName || 'Pendiente' },
 ]);
 
-function submitForm() {
-  console.info('Cambios de condominio listos para guardar', { id: selectedId, ...form });
+function buildPayload(): UpdateCondominiumPayload {
+  return {
+    name: form.name.trim(),
+    ruc: form.ruc.trim(),
+    address: form.address.trim(),
+    city: form.city.trim(),
+    sector: form.sector.trim(),
+    status_id: Number(getSelectedStatusId()),
+    total_houses: Number(form.units),
+  };
 }
+
+async function submitForm() {
+  if (!canSubmit.value) {
+    return;
+  }
+
+  saving.value = true;
+  error.value = '';
+
+  try {
+    await updateAdminCondominium(selectedId, buildPayload());
+    await loadCondominium();
+  } catch (exception) {
+    error.value =
+      exception instanceof Error ? exception.message : 'No se pudo actualizar el condominio';
+  } finally {
+    saving.value = false;
+  }
+}
+
+onMounted(() => {
+  void loadPageData();
+});
 </script>

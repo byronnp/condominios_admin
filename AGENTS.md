@@ -31,7 +31,23 @@ Keep screen and domain interfaces in `src/interfaces/<screen-or-domain>/` instea
 
 Keep API access out of pages. Pages should call composables; composables should call services; services should own endpoint paths, request payloads, and response parsing.
 
+## API Implementation Guidelines
+
+The backend base URL is configured in the environment variable `VITE_API_HOST`. Use it as the reference for backend requests and for checking backend-exposed documentation or endpoints when available.
+
+Before implementing or changing any API consumption, read the backend documentation first and align the frontend with the documented endpoint, HTTP method, payload, query params, response shape, error format, and authentication requirements. Do not infer API contracts from mock UI data when backend docs are available.
+
+If the backend documentation is missing, outdated, or ambiguous, note the uncertainty before implementing and keep the service/composable code narrowly scoped so it can be adjusted once the contract is confirmed.
+
+API request payloads must always come from the backend API documentation. Do not invent payload fields from existing UI mock data, page labels, or assumptions about common CRUD forms. If the documentation for a write endpoint is not available, do not finalize the write payload; ask for the documentation or mark the implementation as blocked/temporary until the contract is confirmed.
+
 Use Pinia for non-sensitive session state only. Authentication must use the secure HttpOnly cookie flow: services send requests with `credentials: 'include'`, `/auth/login` sets the cookie, `/auth/me` restores the session, and `/auth/logout` clears it. Do not store access tokens in Pinia, `localStorage`, or `sessionStorage`.
+
+Catalog endpoints follow `GET /api/admin/catalogs/{catalogId}` through `VITE_API_HOST`; consume only `items[].id` and `items[].name` for select options unless backend documentation states otherwise. The operational status catalog used by condominium editing is catalog id `4`.
+
+Condominium API responses may wrap arrays as a direct array, `items`, `condominiums`, `data`, `data.items`, `data.condominiums`, or `data.data`. Service parsing should tolerate these shapes narrowly and return an empty array only after checking the documented wrappers.
+
+Do not assume condominium `status` is always a string. Normalize status values in composables/services before UI use; it may arrive as a string, number, or object such as `{ id, name }`. Use the display `name` when present, otherwise stringify the id/value.
 
 ## UI Style Guidelines
 
@@ -44,7 +60,9 @@ Keep form fields and buttons compact, soft, and consistent across the project. A
 - Centralize shared button and input styling in `src/css/app.scss`; use local classes only when a screen needs a specific adjustment.
 - Keep icon-only actions round, but use rounded rectangular buttons for text actions.
 - Every screen must be responsive down to mobile widths. Use one-column forms on small screens, stack page actions, reduce panel padding, and avoid text or controls overflowing their containers.
+- When a form section has no data to show, display a clear empty-state note that explains what is missing and what action the client should take next.
 - Data tables must remain usable on mobile. Prefer Quasar grid/card mode or a controlled horizontal scroll with compact row actions instead of forcing wide desktop tables into the viewport.
+- Delete actions must always show a confirmation dialog before performing the deletion.
 - Place reusable dialogs under `src/components/dialogs/`. Dialog components should receive data through props, expose visibility with `v-model`, and emit user actions instead of owning page-level navigation or data fetching.
 - Use the established minimal dialog pattern for future dialogs: simple white header, title plus one concise subtitle, status/action controls aligned to the right, no decorative avatar unless it adds clear meaning, compact rounded buttons, key details only, and responsive single-column content on mobile.
 

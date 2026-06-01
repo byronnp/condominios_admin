@@ -1,6 +1,6 @@
 import { ref } from 'vue';
 import type { LoginPayload } from '../interfaces/auth/login.interface';
-import { getAuthenticatedUser, login, logout } from '../services/auth.service';
+import { getAuthenticatedMenus, getAuthenticatedUser, login, logout } from '../services/auth.service';
 import { useAuthStore } from '../stores/auth-store';
 
 export function useAuth() {
@@ -18,8 +18,14 @@ export function useAuth() {
         throw new Error(response.message || 'No se pudo iniciar sesion');
       }
 
-      authStore.setSession(response.data?.user);
-      return response;
+      const sessionResponse = await getAuthenticatedUser();
+      if (!sessionResponse.success) {
+        throw new Error(sessionResponse.message || 'No se pudo cargar el usuario autenticado');
+      }
+
+      authStore.setSession(sessionResponse.data?.user);
+      await loadMenus();
+      return sessionResponse;
     } catch (exception) {
       error.value = exception instanceof Error ? exception.message : 'No se pudo iniciar sesion';
       throw exception;
@@ -39,6 +45,7 @@ export function useAuth() {
       }
 
       authStore.setSession(response.data?.user);
+      await loadMenus();
       return response;
     } catch (exception) {
       authStore.clearSession();
@@ -62,11 +69,21 @@ export function useAuth() {
     }
   }
 
+  async function loadMenus() {
+    const response = await getAuthenticatedMenus();
+    if (response.success) {
+      authStore.setMenus(response.data);
+    }
+
+    return response;
+  }
+
   return {
     loading,
     error,
     signIn,
     loadSession,
+    loadMenus,
     signOut,
     authStore,
   };

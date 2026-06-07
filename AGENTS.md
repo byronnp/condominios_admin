@@ -60,8 +60,12 @@ Keep form fields and buttons compact, soft, and consistent across the project. A
 - Centralize shared button and input styling in `src/css/app.scss`; use local classes only when a screen needs a specific adjustment.
 - Keep icon-only actions round, but use rounded rectangular buttons for text actions.
 - Every screen must be responsive down to mobile widths. Use one-column forms on small screens, stack page actions, reduce panel padding, and avoid text or controls overflowing their containers.
+- Metric rows and summary blocks must use a real CSS grid or Quasar grid layout; do not stack cards one-per-row unless the screen is intentionally single-column.
+- For house management, keep the condominium-scoped view and the global admin view separate. The route `/condominios/:id/casas` should stay scoped to one condominium, while `/admin/casas` is the global inventory view for super-admin workflows.
+- To create or assign a house owner, use an explicit owner assignment flow tied to an existing user/resident record; do not model the owner as free text inside the house form. If the backend contract for owner creation or linking is missing, keep the UI narrowly scoped and avoid inventing payload fields.
 - When a form section has no data to show, display a clear empty-state note that explains what is missing and what action the client should take next.
 - Data tables must remain usable on mobile. Prefer Quasar grid/card mode or a controlled horizontal scroll with compact row actions instead of forcing wide desktop tables into the viewport.
+- If a table is replaced with cards, use a deliberate multi-column card grid on desktop and collapse to one column only at small breakpoints.
 - Delete actions must always show a confirmation dialog before performing the deletion.
 - Place reusable dialogs under `src/components/dialogs/`. Dialog components should receive data through props, expose visibility with `v-model`, and emit user actions instead of owning page-level navigation or data fetching.
 - Use the established minimal dialog pattern for future dialogs: simple white header, title plus one concise subtitle, status/action controls aligned to the right, no decorative avatar unless it adds clear meaning, compact rounded buttons, key details only, and responsive single-column content on mobile.

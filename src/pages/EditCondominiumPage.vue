@@ -315,7 +315,7 @@ function getSelectedStatusId() {
   }
 
   const selectedStatus = statusOptions.value.find(
-    (status) => status.name.toLowerCase() === form.status.toLowerCase(),
+    (status) => String(status.name || status.label || '').toLowerCase() === form.status.toLowerCase(),
   );
   const catalogStatusId = Number(selectedStatus?.id);
   return Number.isFinite(catalogStatusId) && catalogStatusId > 0 ? catalogStatusId : null;

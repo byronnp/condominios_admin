@@ -21,6 +21,35 @@
           {{ error }}
         </q-banner>
 
+        <q-banner
+          rounded
+          class="bg-blue-1 text-primary q-mb-md"
+        >
+          <template #avatar>
+            <q-avatar color="primary" text-color="white" size="32px">
+              {{ ownerInitials }}
+            </q-avatar>
+          </template>
+
+          <div class="text-weight-medium">
+            {{ ownerHeadline }}
+          </div>
+          <div class="text-caption">
+            {{ ownerDescription }}
+          </div>
+
+          <template #action>
+            <q-btn
+              v-if="isEditMode"
+              flat
+              color="primary"
+              :label="ownerActionLabel"
+              no-caps
+              @click="emit('assign-owner', props.house ?? null)"
+            />
+          </template>
+        </q-banner>
+
         <q-form class="dialog-form-grid" @submit.prevent="submitForm">
           <q-input
             v-model="form.houseNumber"
@@ -80,6 +109,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean];
+  'assign-owner': [house: House | null];
   submit: [form: HouseForm];
 }>();
 
@@ -91,6 +121,20 @@ const form = reactive<HouseForm>({
 
 const isEditMode = computed(() => Boolean(props.house));
 const canSubmit = computed(() => Boolean(form.houseNumber.trim()) && !props.loading);
+const ownerInitials = computed(() => props.house?.ownerInitials || 'DU');
+const ownerHeadline = computed(() =>
+  props.house?.hasOwner ? 'Dueño asignado' : 'Esta casa todavía no tiene dueño',
+);
+const ownerDescription = computed(() =>
+  props.house?.hasOwner
+    ? `${props.house.ownerName} · ${props.house.ownerEmail}`
+    : isEditMode.value
+      ? 'Asigna el propietario desde esta pantalla para completar la ficha de la casa.'
+      : 'Primero crea la casa y luego podrás asignarle un dueño.',
+);
+const ownerActionLabel = computed(() =>
+  props.house?.hasOwner ? 'Cambiar dueño' : 'Asignar dueño',
+);
 
 function resetForm() {
   Object.assign(form, {

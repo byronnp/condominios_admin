@@ -6,10 +6,36 @@ function isCatalogItemArray(value: unknown): value is CatalogItem[] {
 }
 
 function normalizeCatalogItems(items: CatalogItem[]) {
-  return items.map((item) => ({
-    id: String(item.id),
-    name: item.name,
-  }));
+  return items.map((item) => {
+    const normalized: {
+      id: string;
+      name: string;
+      value?: number | string;
+      label?: string;
+      sort_order?: number | string;
+    } = {
+      id: String(item.id ?? item.value ?? ''),
+      name: item.name ?? item.label ?? '',
+    };
+
+    if (item.value !== undefined) {
+      normalized.value = item.value;
+    } else if (item.id !== undefined) {
+      normalized.value = item.id;
+    }
+
+    if (item.label !== undefined) {
+      normalized.label = item.label;
+    } else if (item.name !== undefined) {
+      normalized.label = item.name;
+    }
+
+    if (item.sort_order !== undefined) {
+      normalized.sort_order = item.sort_order;
+    }
+
+    return normalized;
+  });
 }
 
 export async function getAdminCatalogItems(catalogId: string) {

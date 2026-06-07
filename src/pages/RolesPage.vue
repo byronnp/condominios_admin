@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <q-page class="dashboard-page">
     <section class="page-heading">
       <div>
@@ -201,22 +201,38 @@
       :saving="permissionsSavingId === selectedRole?.id"
       @save="savePermissionsHandler"
     />
-  </q-page>
+
+    <ConfirmDialog
+      v-model="showDeleteDialog"
+      title="Eliminar rol"
+      :message="deleteDialogMessage"
+      subtitle="Confirma antes de continuar."
+      hint="Esta accion solo afecta el registro seleccionado."
+      confirm-label="Eliminar"
+      cancel-label="Cancelar"
+      confirm-color="negative"
+      confirm-icon="delete"
+      icon="delete"
+      icon-color="negative"
+      @confirm="deleteSelectedRole"
+    />  </q-page>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import { useQuasar, type QTableColumn } from 'quasar';
+import type { QTableColumn } from 'quasar';
 import RoleFormDialog from 'components/dialogs/RoleFormDialog.vue';
 import RolePermissionsDialog from 'components/dialogs/RolePermissionsDialog.vue';
+import ConfirmDialog from 'components/general/ConfirmDialog.vue';
 import { useRoles } from '../composables/useRoles';
 import type { RoleDetails } from '../interfaces/roles/role.interface';
 
-const $q = useQuasar();
 const filter = ref('');
 const showRoleDialog = ref(false);
 const showPermissionsDialog = ref(false);
+const showDeleteDialog = ref(false);
 const selectedRole = ref<RoleDetails | null>(null);
+const roleToDelete = ref<RoleDetails | null>(null);
 
 const {
   roles,
@@ -313,29 +329,29 @@ function savePermissionsHandler(permissionIds: Array<number | string>) {
 }
 
 function confirmDelete(role: RoleDetails) {
-  $q.dialog({
-    title: 'Eliminar rol',
-    message: `Deseas eliminar ${role.displayName}? Esta accion no se puede deshacer.`,
-    cancel: {
-      flat: true,
-      color: 'primary',
-      label: 'Cancelar',
-      noCaps: true,
-    },
-    ok: {
-      color: 'negative',
-      icon: 'delete',
-      label: 'Eliminar',
-      noCaps: true,
-    },
-    persistent: true,
-  }).onOk(() => {
-    void removeRole(role.id);
-  });
+  roleToDelete.value = role;
+  showDeleteDialog.value = true;
 }
+
+function deleteSelectedRole() {
+  if (!roleToDelete.value) {
+    return;
+  }
+
+  void removeRole(roleToDelete.value.id);
+  roleToDelete.value = null;
+  showDeleteDialog.value = false;
+}
+
+const deleteDialogMessage = computed(() =>
+  roleToDelete.value
+    ? `¿Deseas eliminar ${roleToDelete.value.displayName}? Esta accion no se puede deshacer.`
+    : '¿Deseas eliminar este rol? Esta accion no se puede deshacer.',
+);
 
 onMounted(() => {
   void loadRoles();
   void loadPermissions();
 });
 </script>
+

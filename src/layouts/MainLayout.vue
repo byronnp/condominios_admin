@@ -219,6 +219,26 @@ const currentSection = computed(() => {
     return { label: 'Casas', icon: 'home_work' };
   }
 
+  if (route.path.startsWith('/admin/casas/duenos/nuevo')) {
+    return { label: 'Nuevo dueño', icon: 'person_add' };
+  }
+
+  if (route.path.startsWith('/admin/casas')) {
+    return { label: 'Casas', icon: 'home_work' };
+  }
+
+  if (route.path.startsWith('/residentes/nuevo')) {
+    return { label: 'Nuevo residente', icon: 'person_add' };
+  }
+
+  if (route.path.includes('/residentes/') && route.path.endsWith('/editar')) {
+    return { label: 'Editar residente', icon: 'edit' };
+  }
+
+  if (route.path.startsWith('/residentes')) {
+    return { label: 'Residentes', icon: 'groups' };
+  }
+
   if (route.path.startsWith('/condominios')) {
     return { label: 'Condominios', icon: 'apartment' };
   }
@@ -275,6 +295,8 @@ const menuItems = computed(() => {
       ...shared,
       { label: 'Roles', icon: 'admin_panel_settings', to: '/roles' },
       { label: 'Condominios', icon: 'apartment', to: '/condominios' },
+      { label: 'Casas', icon: 'home_work', to: '/admin/casas' },
+      { label: 'Residentes', icon: 'groups', to: '/residentes' },
       { label: 'Administradores', icon: 'manage_accounts', to: '/administradores' },
       { label: 'Usuarios', icon: 'groups', to: '/usuarios' },
       { label: 'Reportes', icon: 'analytics', to: '/reportes' },
@@ -283,7 +305,7 @@ const menuItems = computed(() => {
     'condo-admin': [
       ...shared,
       { label: 'Propiedades', icon: 'home_work' },
-      { label: 'Residentes', icon: 'group' },
+      { label: 'Residentes', icon: 'group', to: '/residentes' },
       { label: 'Pagos', icon: 'payments' },
       { label: 'Invitados', icon: 'badge' },
       { label: 'Comunicados', icon: 'campaign' },

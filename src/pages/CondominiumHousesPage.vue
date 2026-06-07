@@ -92,6 +92,20 @@
           </q-td>
         </template>
 
+        <template #body-cell-ownerName="props">
+          <q-td :props="props">
+            <div class="condo-cell">
+              <q-avatar color="secondary" text-color="white" size="38px">
+                {{ props.row.ownerInitials }}
+              </q-avatar>
+              <div>
+                <strong>{{ props.row.ownerName }}</strong>
+                <span>{{ props.row.ownerEmail }}</span>
+              </div>
+            </div>
+          </q-td>
+        </template>
+
         <template #body-cell-status="props">
           <q-td :props="props">
             <q-badge
@@ -113,6 +127,14 @@
                 no-caps
                 @click="openEditHouse(props.row)"
               />
+              <q-btn
+                outline
+                color="primary"
+                icon="person_add"
+                label="Dueño"
+                no-caps
+                @click="openAssignOwner(props.row)"
+              />
             </div>
           </q-td>
         </template>
@@ -124,11 +146,11 @@
                 <q-avatar color="primary" text-color="white" size="38px">{{
                   props.row.houseNumber
                 }}</q-avatar>
-                <div>
-                  <strong>{{ props.row.code }}</strong>
-                  <span>{{ props.row.addressReference }}</span>
-                </div>
+              <div>
+                <strong>{{ props.row.code }}</strong>
+                <span>{{ props.row.addressReference }}</span>
               </div>
+            </div>
               <q-badge
                 :color="props.row.statusColor"
                 :label="props.row.status"
@@ -143,6 +165,9 @@
               <span
                 >Condominio<strong>{{ props.row.condominiumName }}</strong></span
               >
+              <span
+                >Dueño<strong>{{ props.row.ownerName }}</strong></span
+              >
             </div>
 
             <div class="row-actions row-actions--mobile">
@@ -153,6 +178,14 @@
                 label="Editar"
                 no-caps
                 @click="openEditHouse(props.row)"
+              />
+              <q-btn
+                outline
+                color="primary"
+                icon="person_add"
+                label="Dueño"
+                no-caps
+                @click="openAssignOwner(props.row)"
               />
             </div>
           </div>
@@ -166,7 +199,18 @@
       :house="selectedHouse"
       :loading="saving"
       :error="formError"
+      @assign-owner="openAssignOwner"
       @submit="submitHouseForm"
+    />
+
+    <AssignHouseOwnerDialog
+      v-model="showOwnerDialog"
+      :condominium-name="condominium?.name || 'Condominio'"
+      :house="selectedHouseForOwner"
+      :resident-options="residentOptions"
+      :loading="assigningOwner || residentsLoading"
+      :error="ownerError || residentsError"
+      @submit="submitHouseOwner"
     />
   </q-page>
 </template>
@@ -175,8 +219,10 @@
 import { computed, onMounted, ref } from 'vue';
 import { useQuasar, type QTableColumn } from 'quasar';
 import { useRoute } from 'vue-router';
+import AssignHouseOwnerDialog from 'components/dialogs/AssignHouseOwnerDialog.vue';
 import HouseFormDialog from 'components/dialogs/HouseFormDialog.vue';
 import { useCondominiumHouses } from '../composables/useCondominiumHouses';
+import { useHouseResidents } from '../composables/useHouseResidents';
 import type {
   AdminCondominiumResponse,
   CondominiumDetails,
@@ -198,14 +244,24 @@ const condominiumLoading = ref(false);
 const pageError = ref('');
 const showHouseDialog = ref(false);
 const selectedHouse = ref<House | null>(null);
+const showOwnerDialog = ref(false);
+const selectedHouseForOwner = ref<House | null>(null);
 const saving = ref(false);
+const assigningOwner = ref(false);
 const formError = ref('');
+const ownerError = ref('');
 const condominiumId = computed(() => String(route.params.id || ''));
 const { houses, loading, error, loadHouses } = useCondominiumHouses();
-
+const {
+  residents: residentOptions,
+  loading: residentsLoading,
+  error: residentsError,
+  loadResidents,
+} = useHouseResidents();
 const columns: QTableColumn<House>[] = [
   { name: 'houseNumber', label: 'Casa', field: 'houseNumber', align: 'left', sortable: true },
   { name: 'code', label: 'Codigo', field: 'code', align: 'left', sortable: true },
+  { name: 'ownerName', label: 'Dueño', field: 'ownerName', align: 'left', sortable: true },
   {
     name: 'addressReference',
     label: 'Referencia',
@@ -307,6 +363,19 @@ function openEditHouse(house: House) {
   showHouseDialog.value = true;
 }
 
+async function openAssignOwner(house: House | null = selectedHouse.value) {
+  if (!house) {
+    return;
+  }
+
+  selectedHouseForOwner.value = house;
+  ownerError.value = '';
+  residentsError.value = '';
+  residentOptions.value = [];
+  showOwnerDialog.value = true;
+  await loadResidents(house.id);
+}
+
 function buildCreatePayload(form: HouseForm): CreateHousePayload {
   return {
     condominium_id: Number(condominiumId.value),
@@ -346,6 +415,43 @@ async function submitHouseForm(form: HouseForm) {
     formError.value = exception instanceof Error ? exception.message : 'No se pudo guardar la casa';
   } finally {
     saving.value = false;
+  }
+}
+
+function submitHouseOwner(owner: (typeof residentOptions.value)[number] | null) {
+  if (!selectedHouseForOwner.value) {
+    return;
+  }
+
+  assigningOwner.value = true;
+  ownerError.value = '';
+
+  try {
+    const ownerName = owner?.name || 'Sin dueño';
+    const ownerEmail = owner?.email || 'Sin correo';
+    const ownerPhone = 'Sin telefono';
+    const ownerInitials = owner?.initials || 'DU';
+
+    houses.value = houses.value.map((house) =>
+      house.id === selectedHouseForOwner.value?.id
+        ? {
+            ...house,
+            ownerId: owner?.id ?? null,
+            ownerName,
+            ownerEmail,
+            ownerPhone,
+            ownerInitials,
+            hasOwner: Boolean(owner),
+          }
+        : house,
+    );
+
+    showOwnerDialog.value = false;
+    selectedHouseForOwner.value = null;
+  } catch (exception) {
+    ownerError.value = exception instanceof Error ? exception.message : 'No se pudo asignar el dueño';
+  } finally {
+    assigningOwner.value = false;
   }
 }
 

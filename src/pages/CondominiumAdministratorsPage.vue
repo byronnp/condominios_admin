@@ -222,6 +222,20 @@
       :error="formError"
       @submit="submitAdminForm"
     />
+    <ConfirmDialog
+      v-model="showDeleteDialog"
+      title="Eliminar administrador"
+      :message="deleteDialogMessage"
+      subtitle="Confirma antes de continuar."
+      hint="Esta accion solo afecta el registro seleccionado."
+      confirm-label="Eliminar"
+      cancel-label="Cancelar"
+      confirm-color="negative"
+      confirm-icon="delete"
+      icon="delete"
+      icon-color="negative"
+      @confirm="deleteSelectedAdmin"
+    />
   </q-page>
 </template>
 
@@ -230,6 +244,7 @@ import { computed, onMounted, ref } from 'vue';
 import { useQuasar, type QTableColumn } from 'quasar';
 import { useRoute } from 'vue-router';
 import AssignCondominiumAdminDialog from 'components/dialogs/AssignCondominiumAdminDialog.vue';
+import ConfirmDialog from 'components/general/ConfirmDialog.vue';
 import { useCondominiumAdmins } from '../composables/useCondominiumAdmins';
 import type {
   CreateCondominiumAdminPayload,
@@ -253,7 +268,9 @@ const condominium = ref<CondominiumDetails | null>(null);
 const condominiumLoading = ref(false);
 const pageError = ref('');
 const showAdminDialog = ref(false);
+const showDeleteDialog = ref(false);
 const selectedAdmin = ref<CondominiumAdmin | null>(null);
+const adminToDelete = ref<CondominiumAdmin | null>(null);
 const saving = ref(false);
 const formError = ref('');
 const condominiumId = computed(() => String(route.params.id || ''));
@@ -388,28 +405,29 @@ async function submitAdminForm(
 }
 
 function deleteAdmin(admin: CondominiumAdmin) {
-  $q.dialog({
-    title: 'Eliminar administrador',
-    message: `Â¿Deseas eliminar a ${admin.name}? Esta accion no se puede deshacer.`,
-    cancel: {
-      flat: true,
-      color: 'primary',
-      label: 'Cancelar',
-      noCaps: true,
-    },
-    ok: {
-      color: 'negative',
-      icon: 'delete',
-      label: 'Eliminar',
-      noCaps: true,
-    },
-    persistent: true,
-  }).onOk(() => {
-    void removeAdmin(condominiumId.value, admin.id);
-  });
+  adminToDelete.value = admin;
+  showDeleteDialog.value = true;
 }
 
+function deleteSelectedAdmin() {
+  if (!adminToDelete.value) {
+    return;
+  }
+
+  void removeAdmin(condominiumId.value, adminToDelete.value.id);
+  adminToDelete.value = null;
+  showDeleteDialog.value = false;
+}
+
+const deleteDialogMessage = computed(() =>
+  adminToDelete.value
+    ? `¿Deseas eliminar a ${adminToDelete.value.name}? Esta accion no se puede deshacer.`
+    : '¿Deseas eliminar este administrador? Esta accion no se puede deshacer.',
+);
 onMounted(() => {
   void loadPage();
 });
 </script>
+
+
+

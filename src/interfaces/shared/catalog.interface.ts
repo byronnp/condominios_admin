@@ -1,6 +1,9 @@
 export interface CatalogItem {
-  id: string;
-  name: string;
+  id?: string;
+  name?: string;
+  value?: number | string;
+  label?: string;
+  sort_order?: number | string;
 }
 
 export interface CatalogResponse {

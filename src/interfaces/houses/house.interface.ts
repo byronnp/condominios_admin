@@ -3,6 +3,25 @@ export interface HouseCondominiumRef {
   name?: string;
 }
 
+export interface HouseOwnerRef {
+  id?: number | string;
+  name?: string;
+  email?: string;
+  phone?: string;
+  initials?: string;
+}
+
+export interface HouseActions {
+  edit?: boolean;
+  assign_resident?: boolean;
+  manage_fees?: boolean;
+  view_payments?: boolean;
+  register_payment?: boolean;
+  view_balance?: boolean;
+  advance_payment?: boolean;
+  invite_user?: boolean;
+}
+
 export interface HouseResponse {
   id?: number | string;
   condominium_id?: number | string | HouseCondominiumRef;
@@ -10,6 +29,9 @@ export interface HouseResponse {
   house_number?: string | null;
   address_reference?: string | null;
   status?: string;
+  owner?: HouseOwnerRef | null;
+  administrator?: HouseOwnerRef | null;
+  actions?: HouseActions;
 }
 
 export interface House {
@@ -21,6 +43,13 @@ export interface House {
   addressReference: string;
   status: string;
   statusColor: string;
+  ownerId: number | null;
+  ownerName: string;
+  ownerEmail: string;
+  ownerPhone: string;
+  ownerInitials: string;
+  hasOwner: boolean;
+  actions: HouseActions;
 }
 
 export interface HousesResponse {

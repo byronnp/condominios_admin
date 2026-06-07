@@ -16,6 +16,33 @@ const routes: RouteRecordRaw[] = [
         component: () => import('pages/CondominiumsPage.vue'),
       },
       {
+        path: '/admin/houses',
+        alias: '/admin/casas',
+        name: 'admin-houses',
+        component: () => import('pages/AdminHousesPage.vue'),
+      },
+      {
+        path: '/admin/casas/duenos/nuevo',
+        name: 'create-house-owner',
+        component: () => import('pages/CreateHouseOwnerPage.vue'),
+      },
+      {
+        path: '/admin/residents',
+        alias: '/admin/residentes',
+        name: 'residents',
+        component: () => import('pages/ResidentsPage.vue'),
+      },
+      {
+        path: '/residentes/nuevo',
+        name: 'create-resident',
+        component: () => import('pages/CreateResidentPage.vue'),
+      },
+      {
+        path: '/residentes/:id/editar',
+        name: 'edit-resident',
+        component: () => import('pages/EditResidentPage.vue'),
+      },
+      {
         path: 'condominios/nuevo',
         name: 'create-condominium',
         component: () => import('pages/CreateCondominiumPage.vue'),

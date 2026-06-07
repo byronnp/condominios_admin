@@ -206,7 +206,21 @@
       :condominium="selectedCondominium"
       @edit="goToEdit"
     />
-  </q-page>
+
+    <ConfirmDialog
+      v-model="showDeleteDialog"
+      title="Eliminar condominio"
+      :message="deleteDialogMessage"
+      subtitle="Confirma antes de continuar."
+      hint="Esta accion solo afecta el registro seleccionado."
+      confirm-label="Eliminar"
+      cancel-label="Cancelar"
+      confirm-color="negative"
+      confirm-icon="delete"
+      icon="delete"
+      icon-color="negative"
+      @confirm="deleteSelectedCondominium"
+    />  </q-page>
 </template>
 
 <script setup lang="ts">
@@ -214,6 +228,7 @@ import { computed, onMounted, ref } from 'vue';
 import { useQuasar, type QTableColumn } from 'quasar';
 import { useRouter } from 'vue-router';
 import CondominiumDetailsDialog from 'components/dialogs/CondominiumDetailsDialog.vue';
+import ConfirmDialog from 'components/general/ConfirmDialog.vue';
 import { useCondominiums } from '../composables/useCondominiums';
 import type { CondominiumDetails } from '../interfaces/condominiums/condominium.interface';
 import type { CondominiumMetric } from '../interfaces/condominiums/condominium-metric.interface';
@@ -224,7 +239,9 @@ const filter = ref('');
 const router = useRouter();
 const $q = useQuasar();
 const showDetailsDialog = ref(false);
+const showDeleteDialog = ref(false);
 const selectedCondominium = ref<Condominium | null>(null);
+const condominiumToDelete = ref<Condominium | null>(null);
 const { condominiums, loading, deletingId, error, loadCondominiums, removeCondominium } = useCondominiums();
 
 const activeCount = computed(() => condominiums.value.filter((condominium) => condominium.statusColor === 'positive').length);
@@ -303,28 +320,27 @@ function goToHouses(condominium: Condominium) {
 }
 
 function deleteCondominium(condominium: Condominium) {
-  $q.dialog({
-    title: 'Eliminar condominio',
-    message: `Â¿Deseas eliminar ${condominium.name}? Esta accion no se puede deshacer.`,
-    cancel: {
-      flat: true,
-      color: 'primary',
-      label: 'Cancelar',
-      noCaps: true,
-    },
-    ok: {
-      color: 'negative',
-      icon: 'delete',
-      label: 'Eliminar',
-      noCaps: true,
-    },
-    persistent: true,
-  }).onOk(() => {
-    void removeCondominium(condominium.id);
-  });
+  condominiumToDelete.value = condominium;
+  showDeleteDialog.value = true;
 }
 
+function deleteSelectedCondominium() {
+  if (!condominiumToDelete.value) {
+    return;
+  }
+
+  void removeCondominium(condominiumToDelete.value.id);
+  condominiumToDelete.value = null;
+  showDeleteDialog.value = false;
+}
+
+const deleteDialogMessage = computed(() =>
+  condominiumToDelete.value
+    ? `¿Deseas eliminar ${condominiumToDelete.value.name}? Esta accion no se puede deshacer.`
+    : '¿Deseas eliminar este condominio? Esta accion no se puede deshacer.',
+);
 onMounted(() => {
   void loadCondominiums();
 });
 </script>
+

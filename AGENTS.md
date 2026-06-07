@@ -4,13 +4,14 @@
 
 This is a Quasar 2 / Vue 3 / TypeScript SPA for condominium administration. Main application code lives in `src/`.
 
-- `src/pages/`: route-level views, such as `LoginPage.vue`.
+- `src/pages/`: route-level views. Prefer grouping new feature screens in `src/pages/<modulo>/` when the module grows.
+- `src/pages/<modulo>/components/`: page-specific components or dialogs that are exclusive to that module.
 - `src/layouts/`: shared page shells, currently `MainLayout.vue`.
-- `src/router/`: Vue Router setup and route declarations.
+- `src/router/`: Vue Router setup and route declarations. Keep the route tree aligned with `src/pages/`, use lazy loading, and mount app routes under `MainLayout.vue` unless a page must be isolated.
 - `src/stores/`: Pinia store registration and future domain stores.
-- `src/interfaces/`: TypeScript interfaces organized by screen or shared domain. Use subfolders such as `condominiums/`, `create-condominium/`, `edit-condominium/`, `dashboard/`, and `shared/`.
+- `src/interfaces/`: TypeScript interfaces organized by screen or shared domain. Use subfolders such as `condominiums/`, `create-condominium/`, `edit-condominium/`, `dashboard/`, `shared/`, `houses/`, `residents/`, and `roles/`.
 - `src/services/`: API clients and data access. Keep HTTP calls here and read API configuration from `VITE_API_HOST`.
-- `src/composables/`: Vue reusable state and workflows. Use composables to expose loading, error, data, and actions that call services.
+- `src/composables/`: Vue reusable state and workflows. Keep shared utilities under `src/composables/shared/` and module-specific logic under `src/composables/<modulo>/`.
 - `src/css/`: global SCSS. Keep shared styles in `app.scss`; Quasar theme variables belong in `quasar.variables.scss`.
 - `src/assets/` and `public/`: images, icons, and static assets.
 
@@ -31,6 +32,8 @@ Keep screen and domain interfaces in `src/interfaces/<screen-or-domain>/` instea
 
 Keep API access out of pages. Pages should call composables; composables should call services; services should own endpoint paths, request payloads, and response parsing.
 
+When introducing a new screen, keep the module folder structure mirrored across `src/pages/`, `src/interfaces/`, `src/composables/`, and `src/router/`. Avoid creating stray top-level feature files when a module folder already exists.
+
 ## API Implementation Guidelines
 
 The backend base URL is configured in the environment variable `VITE_API_HOST`. Use it as the reference for backend requests and for checking backend-exposed documentation or endpoints when available.
@@ -48,6 +51,7 @@ Catalog endpoints follow `GET /api/admin/catalogs/{catalogId}` through `VITE_API
 Condominium API responses may wrap arrays as a direct array, `items`, `condominiums`, `data`, `data.items`, `data.condominiums`, or `data.data`. Service parsing should tolerate these shapes narrowly and return an empty array only after checking the documented wrappers.
 
 Do not assume condominium `status` is always a string. Normalize status values in composables/services before UI use; it may arrive as a string, number, or object such as `{ id, name }`. Use the display `name` when present, otherwise stringify the id/value.
+For forms, keep validation inline with `:rules`, validate before submit with `q-form.validate()` when a submit button or dialog button triggers the action, and keep the UI compact with `dense` fields and `hide-bottom-space` on non-error fields.
 
 ## UI Style Guidelines
 
@@ -67,8 +71,17 @@ Keep form fields and buttons compact, soft, and consistent across the project. A
 - Data tables must remain usable on mobile. Prefer Quasar grid/card mode or a controlled horizontal scroll with compact row actions instead of forcing wide desktop tables into the viewport.
 - If a table is replaced with cards, use a deliberate multi-column card grid on desktop and collapse to one column only at small breakpoints.
 - Delete actions must always show a confirmation dialog before performing the deletion.
-- Place reusable dialogs under `src/components/dialogs/`. Dialog components should receive data through props, expose visibility with `v-model`, and emit user actions instead of owning page-level navigation or data fetching.
+- Do not use `$q.dialog` inside `src/pages/`. Use reusable dialog components instead, with local state and emitted actions.
+- Place reusable dialogs under `src/components/dialogs/` and generic dialogs under `src/components/general/`. Dialog components should receive data through props, expose visibility with `v-model`, and emit user actions instead of owning page-level navigation or data fetching.
+- Prefer `src/components/general/ConfirmDialog.vue` for destructive or critical confirmations and `src/components/general/AlertDialog.vue` for reusable information, success, warning, or error messages.
 - Use the established minimal dialog pattern for future dialogs: simple white header, title plus one concise subtitle, status/action controls aligned to the right, no decorative avatar unless it adds clear meaning, compact rounded buttons, key details only, and responsive single-column content on mobile.
+
+## Workflow Rules
+
+- Keep API work out of pages. If a page needs data, add or update a composable first and keep request/response logic in services.
+- Keep module-specific dialogs in the module folder when they are exclusive to one feature; shared confirmation and alert dialogs stay under `src/components/general/`.
+- Prefer updating the router in the same pass when a new page is added so the route tree stays aligned with the file structure.
+- If a feature spans both global admin and condominium-scoped workflows, keep those routes and screens separate.
 
 ## Testing Guidelines
 

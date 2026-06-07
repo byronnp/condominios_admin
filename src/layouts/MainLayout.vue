@@ -142,7 +142,7 @@
 import { computed, ref } from 'vue';
 import { useQuasar } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
-import { useAuth } from '../composables/useAuth';
+import { useAuth } from '../composables/auth/useAuth';
 import { useAuthStore } from '../stores/auth-store';
 import type { UserRole } from '../interfaces/shared/user-role.interface';
 import type { AuthMenu } from '../interfaces/auth/login.interface';

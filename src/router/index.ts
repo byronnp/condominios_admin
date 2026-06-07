@@ -6,7 +6,7 @@ import {
   createWebHistory,
 } from 'vue-router';
 import routes from './routes';
-import { getAuthenticatedMenus, getAuthenticatedUser } from '../services/auth.service';
+import { getAuthenticatedMenus, getAuthenticatedUser } from '../services/auth/auth.service';
 import { useAuthStore } from '../stores/auth-store';
 
 /*

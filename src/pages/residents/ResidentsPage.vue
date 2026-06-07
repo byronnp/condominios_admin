@@ -106,6 +106,9 @@
               <q-btn flat round dense color="primary" icon="visibility" @click="openDetails(props.row)">
                 <q-tooltip>Ver detalle</q-tooltip>
               </q-btn>
+              <q-btn flat round dense color="primary" icon="history" @click="goToHistory(props.row)">
+                <q-tooltip>Ver historial</q-tooltip>
+              </q-btn>
               <q-btn flat round dense color="primary" icon="edit" :to="`/residentes/${props.row.id}/editar`">
                 <q-tooltip>Editar residente</q-tooltip>
               </q-btn>
@@ -141,6 +144,9 @@
             <div class="row-actions row-actions--mobile">
               <q-btn flat round dense color="primary" icon="visibility" @click="openDetails(props.row)">
                 <q-tooltip>Ver detalle</q-tooltip>
+              </q-btn>
+              <q-btn flat round dense color="primary" icon="history" @click="goToHistory(props.row)">
+                <q-tooltip>Ver historial</q-tooltip>
               </q-btn>
               <q-btn flat round dense color="primary" icon="edit" :to="`/residentes/${props.row.id}/editar`">
                 <q-tooltip>Editar residente</q-tooltip>
@@ -346,6 +352,10 @@ function openDetails(resident: ResidentDetails) {
 function goToEdit(id: number) {
   showDetailsDialog.value = false;
   void router.push(`/residentes/${id}/editar`);
+}
+
+function goToHistory(resident: ResidentDetails) {
+  void router.push(`/residentes/${resident.id}/historial`);
 }
 
 function confirmDelete(resident: ResidentDetails) {

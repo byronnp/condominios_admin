@@ -88,7 +88,71 @@ const routes: RouteRecordRaw[] = [
         name: 'editUser',
         component: () => import('pages/users/EditUserPage.vue'),
       },
-      { path: 'reportes', name: 'reports', component: () => import('pages/reports/ReportsPage.vue') },
+      {
+        path: 'reportes',
+        name: 'reports',
+        component: () => import('pages/reports/ReportsPage.vue'),
+      },
+      {
+        path: 'admin/payments',
+        name: 'payments',
+        component: () => import('pages/payments/PaymentsPage.vue'),
+      },
+      {
+        path: 'admin/payments/:id',
+        name: 'paymentDetail',
+        component: () => import('pages/payments/PaymentDetailPage.vue'),
+      },
+      {
+        path: '/resident/statement',
+        name: 'accountStatement',
+        component: () => import('pages/payments/AccountStatementPage.vue'),
+      },
+      {
+        path: 'admin/fee-charges',
+        name: 'fees',
+        component: () => import('pages/fees/FeesPage.vue'),
+      },
+      {
+        path: 'admin/invitaciones',
+        name: 'invitations',
+        component: () => import('pages/invitations/InvitationsPage.vue'),
+      },
+      {
+        path: 'admin/comunicados',
+        name: 'communications',
+        component: () => import('pages/communications/CommunicationsPage.vue'),
+      },
+      {
+        path: 'admin/solicitudes-mantenimiento',
+        name: 'maintenanceRequests',
+        component: () => import('pages/maintenance/MaintenanceRequestsPage.vue'),
+      },
+      {
+        path: 'perfil',
+        name: 'profile',
+        component: () => import('pages/profile/ProfilePage.vue'),
+      },
+      {
+        path: 'notificaciones',
+        name: 'notifications',
+        component: () => import('pages/notifications/NotificationsPage.vue'),
+      },
+      {
+        path: 'notificaciones/:id',
+        name: 'notificationDetail',
+        component: () => import('pages/notifications/NotificationDetailPage.vue'),
+      },
+      {
+        path: 'admin/casas/:id/historial',
+        name: 'houseHistory',
+        component: () => import('pages/houses/HouseHistoryPage.vue'),
+      },
+      {
+        path: 'residentes/:id/historial',
+        name: 'residentHistory',
+        component: () => import('pages/residents/ResidentHistoryPage.vue'),
+      },
       {
         path: 'configuracion',
         name: 'settings',

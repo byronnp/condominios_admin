@@ -168,6 +168,9 @@
               <q-btn flat round dense color="primary" icon="edit" :disable="!props.row.actions.edit" @click="openEditHouse(props.row)">
                 <q-tooltip>Editar casa</q-tooltip>
               </q-btn>
+              <q-btn flat round dense color="primary" icon="history" @click="goToHouseHistory(props.row)">
+                <q-tooltip>Ver historial</q-tooltip>
+              </q-btn>
               <q-btn
                 flat
                 round
@@ -214,6 +217,9 @@
             <div class="row-actions row-actions--mobile">
               <q-btn flat round dense color="primary" icon="edit" :disable="!props.row.actions.edit" @click="openEditHouse(props.row)">
                 <q-tooltip>Editar casa</q-tooltip>
+              </q-btn>
+              <q-btn flat round dense color="primary" icon="history" @click="goToHouseHistory(props.row)">
+                <q-tooltip>Ver historial</q-tooltip>
               </q-btn>
               <q-btn
                 flat
@@ -572,6 +578,10 @@ function goToCreateOwner(house: House) {
       house_label: house.code,
     },
   });
+}
+
+function goToHouseHistory(house: House) {
+  void router.push(`/admin/casas/${house.id}/historial`);
 }
 
 onMounted(() => {

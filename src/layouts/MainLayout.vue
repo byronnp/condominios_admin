@@ -32,7 +32,7 @@
 
         <q-space />
 
-        <q-btn flat round dense icon="notifications" aria-label="Notificaciones" class="header-icon-btn">
+        <q-btn flat round dense icon="notifications" aria-label="Notificaciones" class="header-icon-btn" @click="goToNotifications">
           <q-badge floating rounded color="accent" label="3" />
         </q-btn>
 
@@ -47,7 +47,7 @@
             </div>
           </template>
           <q-list dense>
-            <q-item clickable v-close-popup>
+            <q-item clickable v-close-popup @click="goToProfile">
               <q-item-section avatar>
                 <q-icon name="person" />
               </q-item-section>
@@ -223,8 +223,48 @@ const currentSection = computed(() => {
     return { label: 'Nuevo dueño', icon: 'person_add' };
   }
 
+  if (route.path.includes('/admin/casas/') && route.path.endsWith('/historial')) {
+    return { label: 'Historial de casa', icon: 'history' };
+  }
+
   if (route.path.startsWith('/admin/casas')) {
     return { label: 'Casas', icon: 'home_work' };
+  }
+
+  if (route.path.startsWith('/admin/pagos')) {
+    return { label: 'Pagos', icon: 'payments' };
+  }
+
+  if (route.path.startsWith('/admin/alicuotas')) {
+    return { label: 'Alicuotas', icon: 'receipt_long' };
+  }
+
+  if (route.path.startsWith('/admin/invitaciones')) {
+    return { label: 'Invitaciones', icon: 'badge' };
+  }
+
+  if (route.path.startsWith('/admin/comunicados')) {
+    return { label: 'Comunicados', icon: 'campaign' };
+  }
+
+  if (route.path.startsWith('/admin/solicitudes-mantenimiento')) {
+    return { label: 'Mantenimiento', icon: 'build' };
+  }
+
+  if (route.path.startsWith('/estado-cuenta')) {
+    return { label: 'Estado de cuenta', icon: 'account_balance_wallet' };
+  }
+
+  if (route.path.startsWith('/notificaciones')) {
+    return { label: 'Notificaciones', icon: 'notifications' };
+  }
+
+  if (route.path.startsWith('/perfil')) {
+    return { label: 'Perfil', icon: 'person' };
+  }
+
+  if (route.path.includes('/residentes/') && route.path.endsWith('/historial')) {
+    return { label: 'Historial de residente', icon: 'history' };
   }
 
   if (route.path.startsWith('/residentes/nuevo')) {
@@ -275,7 +315,7 @@ const currentSection = computed(() => {
     return { label: 'Configuracion', icon: 'settings' };
   }
 
-  if (route.path.startsWith('/roles')) {
+  if (route.path.startsWith('/admin/roles')) {
     return { label: 'Roles', icon: 'admin_panel_settings' };
   }
 
@@ -299,25 +339,36 @@ const menuItems = computed(() => {
       { label: 'Residentes', icon: 'groups', to: '/residentes' },
       { label: 'Administradores', icon: 'manage_accounts', to: '/administradores' },
       { label: 'Usuarios', icon: 'groups', to: '/usuarios' },
+      { label: 'Pagos', icon: 'payments', to: '/admin/pagos' },
+      { label: 'Alicuotas', icon: 'receipt_long', to: '/admin/alicuotas' },
+      { label: 'Comunicados', icon: 'campaign', to: '/admin/comunicados' },
+      { label: 'Mantenimiento', icon: 'build', to: '/admin/solicitudes-mantenimiento' },
       { label: 'Reportes', icon: 'analytics', to: '/reportes' },
+      { label: 'Notificaciones', icon: 'notifications', to: '/notificaciones' },
+      { label: 'Perfil', icon: 'person', to: '/perfil' },
       { label: 'Configuracion', icon: 'settings', to: '/configuracion' },
     ],
     'condo-admin': [
       ...shared,
       { label: 'Propiedades', icon: 'home_work' },
       { label: 'Residentes', icon: 'group', to: '/residentes' },
-      { label: 'Pagos', icon: 'payments' },
-      { label: 'Invitados', icon: 'badge' },
-      { label: 'Comunicados', icon: 'campaign' },
+      { label: 'Pagos', icon: 'payments', to: '/admin/pagos' },
+      { label: 'Alicuotas', icon: 'receipt_long', to: '/admin/alicuotas' },
+      { label: 'Invitados', icon: 'badge', to: '/admin/invitaciones' },
+      { label: 'Comunicados', icon: 'campaign', to: '/admin/comunicados' },
+      { label: 'Mantenimiento', icon: 'build', to: '/admin/solicitudes-mantenimiento' },
       { label: 'Reportes', icon: 'bar_chart' },
+      { label: 'Notificaciones', icon: 'notifications', to: '/notificaciones' },
+      { label: 'Perfil', icon: 'person', to: '/perfil' },
     ],
     resident: [
       ...shared,
       { label: 'Mi vivienda', icon: 'home' },
-      { label: 'Pagos', icon: 'receipt_long' },
-      { label: 'Invitados', icon: 'how_to_reg' },
-      { label: 'Comunicados', icon: 'notifications' },
-      { label: 'Solicitudes', icon: 'support_agent' },
+      { label: 'Estado de cuenta', icon: 'receipt_long', to: '/estado-cuenta' },
+      { label: 'Invitados', icon: 'how_to_reg', to: '/admin/invitaciones' },
+      { label: 'Comunicados', icon: 'notifications', to: '/notificaciones' },
+      { label: 'Solicitudes', icon: 'support_agent', to: '/admin/solicitudes-mantenimiento' },
+      { label: 'Perfil', icon: 'person', to: '/perfil' },
     ],
   };
 
@@ -338,6 +389,14 @@ function toggleLeftDrawer() {
   }
 
   drawerMini.value = !drawerMini.value;
+}
+
+function goToNotifications() {
+  void router.push('/notificaciones');
+}
+
+function goToProfile() {
+  void router.push('/perfil');
 }
 
 function normalizeMenuPath(path?: string | null) {

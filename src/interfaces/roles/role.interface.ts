@@ -12,6 +12,8 @@ export interface PermissionResponse {
   code?: string;
   key?: string;
   slug?: string;
+  group?: string;
+  scope?: string;
   parent_id?: number | string | null;
   parentId?: number | string | null;
   description?: string | null;
@@ -68,6 +70,9 @@ export interface RoleDetails {
   displayName: string;
   guardName: string;
   description: string;
+  scope?: string;
+  condominiumId?: number | string | null;
+  condominiumName?: string;
   permissions: string[];
   permissionIds: Array<number | string>;
   permissionsCount: number;
@@ -78,6 +83,8 @@ export interface PermissionDetails {
   id: number | string;
   name: string;
   code: string;
+  group: string;
+  scope: string;
   guardName: string;
   description: string;
   parentId: number | string | null;

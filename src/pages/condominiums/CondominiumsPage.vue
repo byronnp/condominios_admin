@@ -123,6 +123,26 @@
                 round
                 dense
                 color="primary"
+                icon="groups"
+                @click="goToDirective(props.row)"
+              >
+                <q-tooltip>Ver directiva</q-tooltip>
+              </q-btn>
+              <q-btn
+                flat
+                round
+                dense
+                color="primary"
+                icon="admin_panel_settings"
+                @click="goToRoles(props.row)"
+              >
+                <q-tooltip>Roles del condominio</q-tooltip>
+              </q-btn>
+              <q-btn
+                flat
+                round
+                dense
+                color="primary"
                 icon="edit"
                 :to="`/condominios/${props.row.id}/editar`"
               >
@@ -192,6 +212,26 @@
                 @click="goToHouses(props.row)"
               >
                 <q-tooltip>Ver casas</q-tooltip>
+              </q-btn>
+              <q-btn
+                flat
+                round
+                dense
+                color="primary"
+                icon="groups"
+                @click="goToDirective(props.row)"
+              >
+                <q-tooltip>Ver directiva</q-tooltip>
+              </q-btn>
+              <q-btn
+                flat
+                round
+                dense
+                color="primary"
+                icon="admin_panel_settings"
+                @click="goToRoles(props.row)"
+              >
+                <q-tooltip>Roles del condominio</q-tooltip>
               </q-btn>
               <q-btn
                 flat
@@ -337,6 +377,22 @@ function goToAdmins(condominium: Condominium) {
 
 function goToHouses(condominium: Condominium) {
   void router.push(`/condominios/${condominium.id}/casas`);
+}
+
+function goToDirective(condominium: Condominium) {
+  void router.push(`/condominios/${condominium.id}/directiva`);
+}
+
+function goToRoles(condominium: Condominium) {
+  void router.push({
+    path: '/admin/roles',
+    query: {
+      scope: 'condominium',
+      condominiumId: String(condominium.id),
+      condominiumName: condominium.name,
+      openCreate: '1',
+    },
+  });
 }
 
 function deleteCondominium(condominium: Condominium) {

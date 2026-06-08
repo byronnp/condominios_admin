@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <q-layout view="lHh Lpr lFf" class="app-shell">
     <q-header class="app-header">
       <q-toolbar class="app-toolbar">
@@ -16,19 +16,27 @@
           <div class="brand-block">
             <div class="brand-mark">CA</div>
             <div>
-              <q-toolbar-title class="brand-title">{{ userName }}</q-toolbar-title>
-              <div class="brand-subtitle">{{ headerAccountSubtitle }}</div>
+              <q-toolbar-title class="brand-title">{{ currentSection.label }}</q-toolbar-title>
+              <div class="brand-subtitle">{{ currentSection.subtitle }}</div>
             </div>
           </div>
         </div>
 
-        <div class="header-context">
-          <q-icon :name="currentSection.icon" />
-          <div>
-            <span>{{ currentSection.label }}</span>
-            <small>{{ userScope }}</small>
-          </div>
-        </div>
+        <q-input
+          v-model="headerSearch"
+          outlined
+          dense
+          hide-bottom-space
+          placeholder="Buscar en la plataforma..."
+          class="header-search"
+        >
+          <template #prepend>
+            <q-icon name="search" />
+          </template>
+          <template #append>
+            <div class="header-search__hint">âŒ˜ K</div>
+          </template>
+        </q-input>
 
         <q-space />
 
@@ -68,64 +76,113 @@
       v-model="leftDrawerOpen"
       show-if-above
       bordered
-      class="app-drawer"
-      :width="284"
-      :mini-width="76"
+      :class="['app-drawer', { 'app-drawer--mini': isDrawerMini }]"
+      :width="304"
+      :mini-width="72"
       :mini="isDrawerMini"
     >
-      <div class="drawer-profile">
-        <q-avatar size="44px" color="primary" text-color="white">{{ userInitials }}</q-avatar>
-        <div>
-          <strong>{{ userName }}</strong>
-          <span>{{ userEmail || userScope }}</span>
+      <div class="drawer-brand">
+        <div class="drawer-brand__mark">
+          <q-icon name="apartment" />
+        </div>
+        <div class="drawer-brand__text">
+          <strong>Condominios</strong>
+          <span>Panel administrativo</span>
         </div>
       </div>
 
-      <q-list class="nav-list">
-        <template v-for="item in menuItems" :key="item.key">
-          <q-expansion-item
-            v-if="item.children.length > 0"
-            :icon="item.icon"
-            :label="item.label"
-            dense
-            expand-separator
-            class="nav-expansion"
-            header-class="nav-item"
-          >
-            <q-item
-              v-for="child in item.children"
-              :key="child.key"
-              clickable
-              :to="child.to"
-              :exact="child.to === '/'"
-              active-class="nav-item--active"
-              class="nav-item nav-item--child"
-            >
-              <q-item-section avatar>
-                <q-icon :name="child.icon" />
-              </q-item-section>
-              <q-item-section>{{ child.label }}</q-item-section>
-            </q-item>
-          </q-expansion-item>
+      <div class="drawer-profile-card">
+        <q-avatar size="40px" color="white" text-color="primary" class="drawer-profile-card__avatar">
+          {{ userInitials }}
+        </q-avatar>
+        <div class="drawer-profile-card__content">
+          <strong>{{ userName }}</strong>
+          <span>{{ userEmail || userScope }}</span>
+        </div>
+        <q-icon name="expand_more" size="20px" />
+      </div>
 
-          <q-item
-            v-else
-            clickable
-            :to="item.to"
-            :exact="item.to === '/'"
-            active-class="nav-item--active"
-            class="nav-item"
-          >
-            <q-item-section avatar>
-              <q-icon :name="item.icon" />
-            </q-item-section>
-            <q-item-section>{{ item.label }}</q-item-section>
-            <q-tooltip v-if="isDrawerMini" anchor="center right" self="center left">
-              {{ item.label }}
-            </q-tooltip>
-          </q-item>
-        </template>
-      </q-list>
+      <q-scroll-area class="drawer-scroll">
+        <div class="drawer-sections">
+          <section v-for="section in drawerSections" :key="section.key" class="drawer-section">
+            <p v-if="section.label" class="drawer-section__title">{{ section.label }}</p>
+
+            <div v-if="section.header" class="drawer-section__header">
+              <div class="drawer-section__header-icon">
+                <q-icon :name="normalizeMenuIcon(section.header.icon)" />
+              </div>
+              <div class="drawer-section__header-copy">
+                <strong>{{ section.header.label }}</strong>
+                <span v-if="section.label">{{ section.label }}</span>
+              </div>
+            </div>
+
+            <q-list class="nav-list">
+              <template v-for="item in section.items" :key="item.key">
+                <div v-if="item.children.length > 0" class="nav-group">
+                  <q-item
+                    :clickable="Boolean(item.to)"
+                    :to="item.to"
+                    :exact="item.to === '/'"
+                    active-class="nav-item--active"
+                    class="nav-item nav-item--root"
+                  >
+                    <q-item-section avatar>
+                      <q-icon :name="normalizeMenuIcon(item.icon)" />
+                    </q-item-section>
+                    <q-item-section>{{ item.label }}</q-item-section>
+                  </q-item>
+
+                  <div class="nav-group__children">
+                    <q-item
+                      v-for="child in item.children"
+                      :key="child.key"
+                      :clickable="Boolean(child.to)"
+                      :to="child.to"
+                      :exact="child.to === '/'"
+                      active-class="nav-item--active"
+                      class="nav-item nav-item--child"
+                    >
+                      <q-item-section avatar>
+                        <q-icon :name="normalizeMenuIcon(child.icon)" />
+                      </q-item-section>
+                      <q-item-section>{{ child.label }}</q-item-section>
+                    </q-item>
+                  </div>
+                </div>
+
+                <q-item
+                  v-else
+                  :clickable="Boolean(item.to)"
+                  :to="item.to"
+                  :exact="item.to === '/'"
+                  active-class="nav-item--active"
+                  class="nav-item"
+                >
+                  <q-item-section avatar>
+                    <q-icon :name="normalizeMenuIcon(item.icon)" />
+                  </q-item-section>
+                  <q-item-section>{{ item.label }}</q-item-section>
+                  <q-tooltip v-if="isDrawerMini" anchor="center right" self="center left">
+                    {{ item.label }}
+                  </q-tooltip>
+                </q-item>
+              </template>
+            </q-list>
+          </section>
+        </div>
+      </q-scroll-area>
+
+      <div class="drawer-footer-card">
+        <div class="drawer-footer-card__icon">
+          <q-icon name="shield" />
+        </div>
+        <div class="drawer-footer-card__content">
+          <strong>Sistema seguro</strong>
+          <span>Tus datos estan protegidos con cifrado de nivel empresarial.</span>
+        </div>
+        <div class="drawer-footer-card__status" />
+      </div>
     </q-drawer>
 
     <q-page-container>
@@ -143,6 +200,7 @@ import { computed, ref } from 'vue';
 import { useQuasar } from 'quasar';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuth } from '../composables/auth/useAuth';
+import { normalizeMenuIcon } from '../composables/shared/menu-icons';
 import { useAuthStore } from '../stores/auth-store';
 import type { UserRole } from '../interfaces/shared/user-role.interface';
 import type { AuthMenu } from '../interfaces/auth/login.interface';
@@ -158,8 +216,16 @@ type NavMenuItem = {
   children: NavMenuItem[];
 };
 
+type DrawerSection = {
+  key: string;
+  label?: string | undefined;
+  header?: NavMenuItem | undefined;
+  items: NavMenuItem[];
+};
+
 const leftDrawerOpen = ref(false);
 const drawerMini = ref(false);
+const headerSearch = ref('');
 const $q = useQuasar();
 const route = useRoute();
 const router = useRouter();
@@ -168,11 +234,18 @@ const { signOut, loading: authLoading } = useAuth();
 
 const isDrawerMini = computed(() => drawerMini.value && !$q.screen.lt.md);
 
-const currentRole = computed(() => authStore.role);
+const currentRole = computed<UserRole>(() => {
+  const role = authStore.role;
+
+  if (role === 'super-admin' || role === 'condo-admin' || role === 'resident') {
+    return role;
+  }
+
+  return 'super-admin';
+});
+
 const userName = computed(() => authStore.userName);
 const userEmail = computed(() => authStore.userEmail);
-const userRoleName = computed(() => authStore.userRoleName);
-const headerAccountSubtitle = computed(() => userRoleName.value || roleLabel.value);
 const userInitials = computed(() => {
   return userName.value
     .split(' ')
@@ -180,16 +253,6 @@ const userInitials = computed(() => {
     .slice(0, 2)
     .map((name) => name[0]?.toUpperCase())
     .join('');
-});
-
-const roleLabel = computed(() => {
-  const labels: Record<UserRole, string> = {
-    'super-admin': 'Super administrador',
-    'condo-admin': 'Administrador de condominio',
-    resident: 'Condomino',
-  };
-
-  return labels[currentRole.value];
 });
 
 const userScope = computed(() => {
@@ -203,183 +266,206 @@ const userScope = computed(() => {
 });
 
 const currentSection = computed(() => {
-  if (route.path.startsWith('/condominios/nuevo')) {
-    return { label: 'Nuevo condominio', icon: 'add_business' };
+  if (route.path.startsWith('/admin/condominiums')) {
+    return { label: 'Condominios', subtitle: 'Gestion central de conjuntos', icon: 'apartment' };
   }
 
-  if (route.path.includes('/condominios/') && route.path.endsWith('/editar')) {
-    return { label: 'Editar condominio', icon: 'edit' };
+  if (route.path.startsWith('/admin/houses')) {
+    return { label: 'Casas', subtitle: 'Inventario global de viviendas', icon: 'home_work' };
   }
 
-  if (route.path.includes('/condominios/') && route.path.endsWith('/administradores')) {
-    return { label: 'Administradores', icon: 'manage_accounts' };
+  if (route.path.startsWith('/admin/residents')) {
+    return { label: 'Residentes', subtitle: 'Padron y vinculos por casa', icon: 'groups' };
   }
 
-  if (route.path.includes('/condominios/') && route.path.endsWith('/casas')) {
-    return { label: 'Casas', icon: 'home_work' };
+  if (route.path.startsWith('/admin/payments')) {
+    return { label: 'Pagos', subtitle: 'Control de cobros y movimientos', icon: 'payments' };
   }
 
-  if (route.path.startsWith('/admin/casas/duenos/nuevo')) {
-    return { label: 'Nuevo dueño', icon: 'person_add' };
+  if (route.path.startsWith('/admin/board')) {
+    return { label: 'Directivas', subtitle: 'Periodos y miembros por condominio', icon: 'groups' };
   }
 
-  if (route.path.includes('/admin/casas/') && route.path.endsWith('/historial')) {
-    return { label: 'Historial de casa', icon: 'history' };
-  }
-
-  if (route.path.startsWith('/admin/casas')) {
-    return { label: 'Casas', icon: 'home_work' };
-  }
-
-  if (route.path.startsWith('/admin/pagos')) {
-    return { label: 'Pagos', icon: 'payments' };
+  if (route.path.startsWith('/admin/fee-rates')) {
+    return { label: 'Tarifas de alicuotas', subtitle: 'Configuracion de tarifas base', icon: 'badge' };
   }
 
   if (route.path.startsWith('/admin/alicuotas')) {
-    return { label: 'Alicuotas', icon: 'receipt_long' };
+    return { label: 'Alicuotas', subtitle: 'Configuracion de cuotas y valores', icon: 'receipt_long' };
   }
 
-  if (route.path.startsWith('/admin/invitaciones')) {
-    return { label: 'Invitaciones', icon: 'badge' };
+  if (route.path.startsWith('/admin/payment-methods')) {
+    return { label: 'Metodos de pago', subtitle: 'Formas de cobro habilitadas', icon: 'wallet' };
   }
 
-  if (route.path.startsWith('/admin/comunicados')) {
-    return { label: 'Comunicados', icon: 'campaign' };
+  if (route.path.startsWith('/admin/catalogs')) {
+    return { label: 'Catalogos', subtitle: 'Catalogos globales del sistema', icon: 'list_tree' };
   }
 
-  if (route.path.startsWith('/admin/solicitudes-mantenimiento')) {
-    return { label: 'Mantenimiento', icon: 'build' };
+  if (route.path.startsWith('/admin/menus')) {
+    return { label: 'Menus', subtitle: 'Estructura de navegacion y permisos', icon: 'menu' };
   }
 
-  if (route.path.startsWith('/estado-cuenta')) {
-    return { label: 'Estado de cuenta', icon: 'account_balance_wallet' };
-  }
-
-  if (route.path.startsWith('/notificaciones')) {
-    return { label: 'Notificaciones', icon: 'notifications' };
+  if (route.path.startsWith('/admin/audit-logs')) {
+    return { label: 'Auditoria', subtitle: 'Registro de acciones del sistema', icon: 'shield_check' };
   }
 
   if (route.path.startsWith('/perfil')) {
-    return { label: 'Perfil', icon: 'person' };
+    return { label: 'Perfil', subtitle: 'Informacion de tu cuenta', icon: 'person' };
+  }
+
+  if (route.path.startsWith('/admin/comunicados')) {
+    return { label: 'Comunicados', subtitle: 'Mensajes y avisos operativos', icon: 'campaign' };
+  }
+
+  if (route.path.startsWith('/admin/solicitudes-mantenimiento')) {
+    return { label: 'Mantenimiento', subtitle: 'Solicitudes y seguimiento', icon: 'build' };
+  }
+
+  if (route.path.startsWith('/resident/houses')) {
+    return { label: 'Mi hogar', subtitle: 'Panel principal del residente', icon: 'home' };
+  }
+
+  if (route.path.startsWith('/resident/payments')) {
+    return { label: 'Mis pagos', subtitle: 'Historial de pagos de la casa', icon: 'credit_card' };
+  }
+
+  if (route.path.startsWith('/resident/advance-payments')) {
+    return { label: 'Adelantar alicuotas', subtitle: 'Pagos adelantados por el residente', icon: 'calendar_month' };
+  }
+
+  if (route.path.startsWith('/resident/invitations')) {
+    return { label: 'Invitaciones', subtitle: 'Accesos temporales de la casa', icon: 'badge' };
+  }
+
+  if (route.path.startsWith('/condominios/nuevo')) {
+    return { label: 'Nuevo condominio', subtitle: 'Crea un nuevo espacio dentro del sistema', icon: 'add_business' };
+  }
+
+  if (route.path.includes('/condominios/') && route.path.endsWith('/editar')) {
+    return { label: 'Editar condominio', subtitle: 'Actualiza datos y configuracion', icon: 'edit' };
+  }
+
+  if (route.path.includes('/condominios/') && route.path.endsWith('/administradores')) {
+    return { label: 'Administradores', subtitle: 'Vista global de la plataforma', icon: 'manage_accounts' };
+  }
+
+  if (route.path.includes('/condominios/') && route.path.endsWith('/casas')) {
+    return { label: 'Casas', subtitle: 'Gestion de viviendas por condominio', icon: 'home_work' };
+  }
+
+  if (route.path.includes('/condominios/') && route.path.endsWith('/directiva')) {
+    return { label: 'Directiva', subtitle: 'Miembros y cargos del condominio', icon: 'groups' };
+  }
+
+  if (route.path.startsWith('/admin/casas/duenos/nuevo')) {
+    return { label: 'Nuevo dueÃ±o', subtitle: 'Asigna o crea un propietario', icon: 'person_add' };
+  }
+
+  if (route.path.includes('/admin/casas/') && route.path.endsWith('/historial')) {
+    return { label: 'Historial de casa', subtitle: 'Consulta cambios y eventos', icon: 'history' };
+  }
+
+  if (route.path.startsWith('/admin/casas')) {
+    return { label: 'Casas', subtitle: 'Inventario global de viviendas', icon: 'home_work' };
+  }
+
+  if (route.path.startsWith('/admin/pagos')) {
+    return { label: 'Pagos', subtitle: 'Control de cobros y movimientos', icon: 'payments' };
+  }
+
+  if (route.path.startsWith('/admin/invitaciones')) {
+    return { label: 'Invitaciones', subtitle: 'Gestion de accesos temporales', icon: 'badge' };
+  }
+
+  if (route.path.startsWith('/estado-cuenta')) {
+    return { label: 'Estado de cuenta', subtitle: 'Resumen financiero personal', icon: 'account_balance_wallet' };
+  }
+
+  if (route.path.startsWith('/notificaciones')) {
+    return { label: 'Notificaciones', subtitle: 'Alertas y eventos recientes', icon: 'notifications' };
   }
 
   if (route.path.includes('/residentes/') && route.path.endsWith('/historial')) {
-    return { label: 'Historial de residente', icon: 'history' };
+    return { label: 'Historial de residente', subtitle: 'Cambios y trazabilidad', icon: 'history' };
   }
 
   if (route.path.startsWith('/residentes/nuevo')) {
-    return { label: 'Nuevo residente', icon: 'person_add' };
+    return { label: 'Nuevo residente', subtitle: 'Crea y vincula un residente', icon: 'person_add' };
   }
 
   if (route.path.includes('/residentes/') && route.path.endsWith('/editar')) {
-    return { label: 'Editar residente', icon: 'edit' };
+    return { label: 'Editar residente', subtitle: 'Actualiza datos del residente', icon: 'edit' };
   }
 
   if (route.path.startsWith('/residentes')) {
-    return { label: 'Residentes', icon: 'groups' };
+    return { label: 'Residentes', subtitle: 'Padron y vinculos por casa', icon: 'groups' };
   }
 
   if (route.path.startsWith('/condominios')) {
-    return { label: 'Condominios', icon: 'apartment' };
+    return { label: 'Condominios', subtitle: 'Gestion central de conjuntos', icon: 'apartment' };
   }
 
   if (route.path.startsWith('/administradores/nuevo')) {
-    return { label: 'Nuevo administrador', icon: 'person_add' };
+    return { label: 'Nuevo administrador', subtitle: 'Alta de acceso administrativo', icon: 'person_add' };
   }
 
   if (route.path.includes('/administradores/') && route.path.endsWith('/editar')) {
-    return { label: 'Editar administrador', icon: 'edit' };
+    return { label: 'Editar administrador', subtitle: 'Actualiza permisos y acceso', icon: 'edit' };
   }
 
   if (route.path.startsWith('/administradores')) {
-    return { label: 'Administradores', icon: 'manage_accounts' };
+    return { label: 'Administradores', subtitle: 'Vista global de la plataforma', icon: 'manage_accounts' };
   }
 
   if (route.path.startsWith('/usuarios/nuevo')) {
-    return { label: 'Nuevo usuario', icon: 'person_add' };
+    return { label: 'Nuevo usuario', subtitle: 'Crear cuenta manualmente', icon: 'person_add' };
   }
 
   if (route.path.includes('/usuarios/') && route.path.endsWith('/editar')) {
-    return { label: 'Editar usuario', icon: 'edit' };
+    return { label: 'Editar usuario', subtitle: 'Modificar acceso y datos', icon: 'edit' };
   }
 
   if (route.path.startsWith('/usuarios')) {
-    return { label: 'Usuarios', icon: 'groups' };
+    return { label: 'Usuarios', subtitle: 'Listado de cuentas registradas', icon: 'groups' };
   }
 
   if (route.path.startsWith('/reportes')) {
-    return { label: 'Reportes', icon: 'analytics' };
+    return { label: 'Reportes', subtitle: 'Indicadores y exportaciones', icon: 'analytics' };
   }
 
   if (route.path.startsWith('/configuracion')) {
-    return { label: 'Configuracion', icon: 'settings' };
+    return { label: 'Configuracion', subtitle: 'Preferencias del sistema', icon: 'settings' };
   }
 
   if (route.path.startsWith('/admin/roles')) {
-    return { label: 'Roles', icon: 'admin_panel_settings' };
+    return { label: 'Roles', subtitle: 'Permisos y accesos', icon: 'admin_panel_settings' };
   }
 
-  return { label: 'Dashboard', icon: 'dashboard' };
+  return { label: 'Dashboard', subtitle: 'Resumen general de operacion', icon: 'dashboard' };
 });
 
-const menuItems = computed(() => {
+const drawerSections = computed<DrawerSection[]>(() => {
   const backendMenus = buildMenuTree(authStore.menus);
 
   if (backendMenus.length > 0) {
-    return backendMenus;
+    return groupMenuTree(backendMenus);
   }
 
-  const shared = [{ label: 'Inicio', icon: 'dashboard', to: '/' }];
-  const roleMenus: Record<UserRole, { key?: string; label: string; icon: string; to?: string }[]> = {
-    'super-admin': [
-      ...shared,
-      { label: 'Roles', icon: 'admin_panel_settings', to: '/roles' },
-      { label: 'Condominios', icon: 'apartment', to: '/condominios' },
-      { label: 'Casas', icon: 'home_work', to: '/admin/casas' },
-      { label: 'Residentes', icon: 'groups', to: '/residentes' },
-      { label: 'Administradores', icon: 'manage_accounts', to: '/administradores' },
-      { label: 'Usuarios', icon: 'groups', to: '/usuarios' },
-      { label: 'Pagos', icon: 'payments', to: '/admin/pagos' },
-      { label: 'Alicuotas', icon: 'receipt_long', to: '/admin/alicuotas' },
-      { label: 'Comunicados', icon: 'campaign', to: '/admin/comunicados' },
-      { label: 'Mantenimiento', icon: 'build', to: '/admin/solicitudes-mantenimiento' },
-      { label: 'Reportes', icon: 'analytics', to: '/reportes' },
-      { label: 'Notificaciones', icon: 'notifications', to: '/notificaciones' },
-      { label: 'Perfil', icon: 'person', to: '/perfil' },
-      { label: 'Configuracion', icon: 'settings', to: '/configuracion' },
-    ],
-    'condo-admin': [
-      ...shared,
-      { label: 'Propiedades', icon: 'home_work' },
-      { label: 'Residentes', icon: 'group', to: '/residentes' },
-      { label: 'Pagos', icon: 'payments', to: '/admin/pagos' },
-      { label: 'Alicuotas', icon: 'receipt_long', to: '/admin/alicuotas' },
-      { label: 'Invitados', icon: 'badge', to: '/admin/invitaciones' },
-      { label: 'Comunicados', icon: 'campaign', to: '/admin/comunicados' },
-      { label: 'Mantenimiento', icon: 'build', to: '/admin/solicitudes-mantenimiento' },
-      { label: 'Reportes', icon: 'bar_chart' },
-      { label: 'Notificaciones', icon: 'notifications', to: '/notificaciones' },
-      { label: 'Perfil', icon: 'person', to: '/perfil' },
-    ],
-    resident: [
-      ...shared,
-      { label: 'Mi vivienda', icon: 'home' },
-      { label: 'Estado de cuenta', icon: 'receipt_long', to: '/estado-cuenta' },
-      { label: 'Invitados', icon: 'how_to_reg', to: '/admin/invitaciones' },
-      { label: 'Comunicados', icon: 'notifications', to: '/notificaciones' },
-      { label: 'Solicitudes', icon: 'support_agent', to: '/admin/solicitudes-mantenimiento' },
-      { label: 'Perfil', icon: 'person', to: '/perfil' },
-    ],
-  };
-
-  return roleMenus[currentRole.value].map((item) => ({
-    key: item.key || item.label,
-    label: item.label,
-    icon: item.icon,
-    to: item.to,
-    sortOrder: 0,
-    children: [],
-  }));
+  return [
+    {
+      key: 'sin_permisos',
+      items: [
+        {
+          key: 'sin_permisos_item',
+          label: 'Sin permisos',
+          icon: 'lock',
+          sortOrder: 0,
+          children: [],
+        },
+      ],
+    },
+  ];
 });
 
 function toggleLeftDrawer() {
@@ -407,31 +493,27 @@ function normalizeMenuPath(path?: string | null) {
   return path.startsWith('/') ? path : `/${path}`;
 }
 
-function normalizeMenuIcon(icon?: string | null) {
-  const iconMap: Record<string, string> = {
-    'badge-dollar-sign': 'paid',
-    'building-2': 'apartment',
-    'calendar-plus': 'event_available',
-    'credit-card': 'credit_card',
-    'file-text': 'description',
-    'layout-dashboard': 'dashboard',
-    'list-tree': 'account_tree',
-    'panel-left': 'view_sidebar',
-    'receipt-text': 'receipt_long',
-    'shield-check': 'verified_user',
-    'user-plus': 'person_add',
-    users: 'groups',
-    'wallet-cards': 'account_balance_wallet',
-    home: 'home',
-    receipt: 'receipt',
-    settings: 'settings',
-  };
+function groupMenuTree(items: NavMenuItem[]): DrawerSection[] {
+  const groups: DrawerSection[] = [];
 
-  if (!icon) {
-    return 'radio_button_unchecked';
-  }
+  items.forEach((item) => {
+    if (item.children.length > 0) {
+      groups.push({
+        key: item.key,
+        header: item.to ? item : undefined,
+        label: item.to ? undefined : item.label,
+        items: item.children,
+      });
+      return;
+    }
 
-  return iconMap[icon] || icon;
+    groups.push({
+      key: item.key,
+      items: [item],
+    });
+  });
+
+  return groups;
 }
 
 function buildMenuTree(menus: AuthMenu[]): NavMenuItem[] {
@@ -502,3 +584,4 @@ async function handleLogout() {
   void router.push('/login');
 }
 </script>
+

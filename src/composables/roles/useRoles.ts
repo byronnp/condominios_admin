@@ -23,6 +23,11 @@ function normalizeRole(role: RoleResponse): RoleDetails {
     displayName: name,
     guardName: role.guard_name || 'Sin guard',
     description: role.description || '',
+    scope: (role as RoleResponse & { scope?: string }).scope || 'system',
+    condominiumId:
+      (role as RoleResponse & { condominium_id?: number | string | null }).condominium_id ?? null,
+    condominiumName:
+      (role as RoleResponse & { condominium_name?: string }).condominium_name || '',
     permissions,
     permissionIds: normalizeRolePermissionIds(role.permissions),
     permissionsCount: permissions.length,

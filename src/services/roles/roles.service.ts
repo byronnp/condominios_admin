@@ -182,6 +182,14 @@ function normalizePermissionName(permission: PermissionResponse) {
   );
 }
 
+function normalizePermissionGroup(permission: PermissionResponse) {
+  return permission.group || 'general';
+}
+
+function normalizePermissionScope(permission: PermissionResponse) {
+  return permission.scope || 'system';
+}
+
 function normalizePermissionParentId(permission: PermissionResponse) {
   const parentId = permission.parent_id ?? permission.parentId ?? null;
 
@@ -234,6 +242,8 @@ export function normalizePermissionsList(response: unknown): PermissionDetails[]
     id: permission.id ?? permission.code ?? permission.key ?? permission.slug ?? permission.name ?? '',
     name: normalizePermissionName(permission),
     code: permission.code || permission.key || permission.slug || '',
+    group: normalizePermissionGroup(permission),
+    scope: normalizePermissionScope(permission),
     guardName: permission.guard_name || 'Sin guard',
     description: permission.description || '',
     parentId: normalizePermissionParentId(permission),
